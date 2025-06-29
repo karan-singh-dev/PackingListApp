@@ -1,0 +1,20 @@
+# New .gitignore 
+# Node modules
+node_modules/
+
+# OS junk
+.DS_Store
+
+# Build artifacts
+android/.gradle/
+android/.idea/
+android/.cxx/
+ios/Pods/
+*.log
+
+# Metro / React Native cache
+*.tmp
+*.swp
+
+# Environment files
+.env
