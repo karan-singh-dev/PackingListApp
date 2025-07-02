@@ -10,12 +10,10 @@ import {
   RefreshControl,
   TextInput,
   FlatList,
-  BackHandler,
 } from 'react-native';
-import { API } from '@env';
 import { useDispatch, useSelector } from 'react-redux';
-import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
+import API from '../components/API'; // use your centralized API instance
 
 const COLUMN_WIDTH = 140;
 
@@ -34,8 +32,8 @@ const RowPackingList = ({ navigation }) => {
     try {
       if (!refreshing) setLoading(true);
       setHasError(false);
-      const response = await axios.get(`${API}api/packing/packing/`, {
-        params: { client: client, marka }
+      const response = await API.get('/api/packing/packing/', {
+        params: { client, marka }
       });
       setData(response.data);
     } catch (error) {
@@ -59,8 +57,6 @@ const RowPackingList = ({ navigation }) => {
   const handleStartPacking = (item) => {
     navigation.navigate('Choice', { item: item.part_no });
   };
-
-
 
   const filteredData = data.filter((item) =>
     item.part_no.toLowerCase().includes(searchQuery.toLowerCase())

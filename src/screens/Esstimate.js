@@ -11,37 +11,46 @@ import {
   Platform,
   PermissionsAndroid,
 } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
-import axios from 'axios';
+import { useSelector } from 'react-redux';
 import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
-import FileViewer from 'react-native-file-viewer';
-import { API } from '@env';
-import { NativeModules } from 'react-native';
-
-import Share from 'react-native-share'; // Add this at top
+import API from '../components/API'; // Use your centralized API instance
+// import Share from 'react-native-share'; // Uncomment if you implement share
 
 const windowHeight = Dimensions.get('window').height;
 
 const Esstimate = ({ navigation }) => {
   const selectedClient = useSelector((state) => state.clientData.selectedClient);
+
+  if (!selectedClient) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Please select a client first.</Text>
+      </View>
+    );
+  }
+
   const marka = selectedClient.marka;
   const client = selectedClient.client_name;
 
   const [headers, setHeaders] = useState([]);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
-  const dispatch = useDispatch();
 
   const fetchDataFromAPI = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API}api/asstimate/?client_name=${client}&marka=${marka}`);
-      const data = await response.data;
+      const response = await API.get(`/api/asstimate/`, {
+        params: { client_name: client, marka },
+      });
+
+      const data = response.data;
+
       if (!Array.isArray(data) || data.length === 0) {
-        console.log('No data received');
+        Alert.alert('No Data', 'No estimate data found for this client.');
         return;
       }
+
       const extractedHeaders = Object.keys(data[0]);
       const extractedRows = data.map(item =>
         extractedHeaders.map(key => item[key] ?? '')
@@ -49,7 +58,8 @@ const Esstimate = ({ navigation }) => {
       setHeaders(extractedHeaders);
       setRows(extractedRows);
     } catch (error) {
-      console.error('API Fetch Error:', error);
+      console.error('API Fetch Error:', error.response?.data || error.message);
+      Alert.alert('Error', 'Could not fetch estimate data');
     } finally {
       setLoading(false);
     }
@@ -57,49 +67,49 @@ const Esstimate = ({ navigation }) => {
 
   const handleCopyFromEstimate = async () => {
     try {
-      await axios.post(`${API}api/packing/packing/copy-from-estimate/`, { client, marka });
+      await API.post('/api/packing/packing/copy-from-estimate/', { client, marka });
     } catch (error) {
-      console.error("Error copying from estimate:", error);
+      console.error("Error copying from estimate:", error.response?.data || error.message);
+      Alert.alert('Error', 'Could not copy from estimate');
     }
   };
+
   const requestAndroidPermissions = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        if (Platform.Version >= 33) {
-          const results = await PermissionsAndroid.requestMultiple([
-            PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
-            PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO,
-            PermissionsAndroid.PERMISSIONS.READ_MEDIA_AUDIO,
-          ]);
-          return Object.values(results).every(r => r === PermissionsAndroid.RESULTS.GRANTED);
-        }
-        if (Platform.Version >= 30) {
-          const result = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.MANAGE_EXTERNAL_STORAGE
-          );
-          return result === PermissionsAndroid.RESULTS.GRANTED;
-        }
-        const read = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE);
-        const write = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE);
-        return read === PermissionsAndroid.RESULTS.GRANTED && write === PermissionsAndroid.RESULTS.GRANTED;
-      } catch (err) {
-        console.error("Permission error:", err);
-        return false;
+    if (Platform.OS !== 'android') return true;
+
+    try {
+      if (Platform.Version >= 33) {
+        const results = await PermissionsAndroid.requestMultiple([
+          PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
+          PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO,
+          PermissionsAndroid.PERMISSIONS.READ_MEDIA_AUDIO,
+        ]);
+        return Object.values(results).every(r => r === PermissionsAndroid.RESULTS.GRANTED);
       }
+      if (Platform.Version >= 30) {
+        const result = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.MANAGE_EXTERNAL_STORAGE
+        );
+        return result === PermissionsAndroid.RESULTS.GRANTED;
+      }
+      const read = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE);
+      const write = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE);
+      return read === PermissionsAndroid.RESULTS.GRANTED && write === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.error("Permission error:", err);
+      Alert.alert("Error", "Could not request storage permissions");
+      return false;
     }
-    return true;
   };
 
   const downloadEstimateExcel = async (estimateData) => {
     try {
-      console.log("Checking permissions...");
       const granted = await requestAndroidPermissions();
       if (!granted) {
         Alert.alert("Permission Denied", "Storage permission is required to save the estimate file.");
         return;
       }
 
-      console.log("Generating estimate Excel...");
       const wsData = [
         Object.keys(estimateData[0] || {}).map(k => k.toUpperCase()),
         ...estimateData.map(row => Object.values(row)),
@@ -109,13 +119,11 @@ const Esstimate = ({ navigation }) => {
       XLSX.utils.book_append_sheet(wb, ws, "Estimate");
 
       const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
-
       const filename = `Estimate_${Date.now()}.xlsx`;
       const filePath =
         Platform.OS === 'android'
           ? `${RNFS.DownloadDirectoryPath}/${filename}`
           : `${RNFS.DocumentDirectoryPath}/${filename}`;
-      console.log("Saving file to:", filePath);
 
       await RNFS.writeFile(filePath, wbout, 'base64');
 
@@ -126,10 +134,8 @@ const Esstimate = ({ navigation }) => {
         "Download Successful",
         `Estimate saved to:\n${filePath}`,
         [
-          {
-            text: "Share",
-            onPress: () => shareEstimateFile(filePath),
-          },
+          // Uncomment if implementing sharing
+          // { text: "Share", onPress: () => shareEstimateFile(filePath) },
           { text: "OK" },
         ]
       );
@@ -150,6 +156,18 @@ const Esstimate = ({ navigation }) => {
     });
   };
 
+  /*
+  const shareEstimateFile = async (filePath) => {
+    try {
+      await Share.open({
+        url: `file://${filePath}`,
+        title: 'Share Estimate Excel',
+      });
+    } catch (error) {
+      console.error("Share error:", error);
+    }
+  };
+  */
 
   useEffect(() => {
     fetchDataFromAPI();
@@ -170,7 +188,7 @@ const Esstimate = ({ navigation }) => {
                   </View>
                 ))}
               </View>
-              <ScrollView style={{ maxHeight: windowHeight * 1 }}>
+              <ScrollView style={{ maxHeight: windowHeight }}>
                 {rows.map((row, rowIndex) => (
                   <View
                     key={rowIndex}
@@ -219,7 +237,6 @@ const Esstimate = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    position: 'relative',
     backgroundColor: '#fff',
   },
   title: {

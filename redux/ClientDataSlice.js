@@ -1,53 +1,63 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
-import { API } from '@env';
-
-console.log(API,'API===============')
+import API from "../src/components/API"; // ✅ Your pre-configured Axios instance
 
 // 🔄 Fetch all clients
-export const fetchClients = createAsyncThunk('clientData/fetchClients', async (_, { rejectWithValue }) => {
-  try {
-    const response = await axios.get(`${API}api/client/clients/`);
-    console.log(response)
-    return response.data;
-  } catch (error) {
-   console.error("API error:", error.response?.data || error.message);
-    return rejectWithValue(error.response?.data || error.message);
+export const fetchClients = createAsyncThunk(
+  'clientData/fetchClients',
+  async (_, thunkAPI) => {
+    try {
+      const response = await API.get("/api/client/clients/");
+      return response.data;
+    } catch (error) {
+      console.error('API error:', error.response?.data || error.message);
+      return thunkAPI.rejectWithValue(error.response?.data || error.message);
+    }
   }
-});
+);
 
 // ➕ Add a new client
-export const addClientAsync = createAsyncThunk('clientData/addClientAsync', async (clientData, { rejectWithValue }) => {
-  try {
-    const response = await axios.post(`${API}api/client/clients/`, clientData);
-    return response.data;
-  } catch (error) {
-    return rejectWithValue(error.response?.data || error.message);
+export const addClientAsync = createAsyncThunk(
+  'clientData/addClientAsync',
+  async (clientData, thunkAPI) => {
+    try {
+      const response = await API.post("/api/client/clients/", clientData);
+      return response.data;
+    } catch (error) {
+      console.error('API error:', error.response?.data || error.message);
+      return thunkAPI.rejectWithValue(error.response?.data || error.message);
+    }
   }
-});
+);
 
 // ✏️ Update existing client
-export const updateClientAsync = createAsyncThunk('clientData/updateClientAsync', async (clientData, { rejectWithValue }) => {
-  try {
-    const response = await axios.put(`${API}api/client/clients/${clientData.id}`, clientData);
-    return response.data;
-  } catch (error) {
-    return rejectWithValue(error.response?.data || error.message);
+export const updateClientAsync = createAsyncThunk(
+  'clientData/updateClientAsync',
+  async (clientData, thunkAPI) => {
+    try {
+      const response = await API.put(`/api/client/clients/${clientData.id}/`, clientData);
+      return response.data;
+    } catch (error) {
+      console.error('API error:', error.response?.data || error.message);
+      return thunkAPI.rejectWithValue(error.response?.data || error.message);
+    }
   }
-});
+);
 
 // ❌ Delete a client
-export const deleteClientAsync = createAsyncThunk('clientData/deleteClientAsync', async (clientId, { rejectWithValue }) => {
-   console.log('delet api call',`${API}api/client/clients/${clientId}/)`)
-  try {
-    const res = await axios.delete(`${API}api/client/clients/${clientId}/`);
-
-    return clientId;
-  } catch (error) {
-    return rejectWithValue(error.response?.data || error.message);
+export const deleteClientAsync = createAsyncThunk(
+  'clientData/deleteClientAsync',
+  async (clientId, thunkAPI) => {
+    try {
+      await API.delete(`/api/client/clients/${clientId}/`);
+      return clientId;
+    } catch (error) {
+      console.error('API error:', error.response?.data || error.message);
+      return thunkAPI.rejectWithValue(error.response?.data || error.message);
+    }
   }
-});
+);
 
+// 🔎 Slice definition
 const clientDataSlice = createSlice({
   name: 'clientData',
   initialState: {
@@ -87,7 +97,7 @@ const clientDataSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(updateClientAsync.fulfilled, (state, action) => {
-        const index = state.clients.findIndex(c => c.id === action.payload.id);
+        const index = state.clients.findIndex((c) => c.id === action.payload.id);
         if (index !== -1) {
           state.clients[index] = action.payload;
         }
@@ -96,7 +106,7 @@ const clientDataSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(deleteClientAsync.fulfilled, (state, action) => {
-        state.clients = state.clients.filter(c => c.id !== action.payload);
+        state.clients = state.clients.filter((c) => c.id !== action.payload);
       })
       .addCase(deleteClientAsync.rejected, (state, action) => {
         state.error = action.payload;

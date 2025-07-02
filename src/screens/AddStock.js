@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -12,9 +12,8 @@ import {
 import { pick, types } from '@react-native-documents/picker';
 import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
-import { API } from '@env'; // Ensure API is correctly configured
-import axios from 'axios';
 import { useSelector } from 'react-redux';
+import API from '../components/API'; // <-- Your centralized axios instance
 
 const AddStock = ({ navigation }) => {
   const { height: windowHeight } = useWindowDimensions();
@@ -22,9 +21,11 @@ const AddStock = ({ navigation }) => {
   const [rows, setRows] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  selectedClient = useSelector((state) => state.clientData.selectedClient);
-  const marka = selectedClient.marka;
-  const client = selectedClient.client_name
+
+  const selectedClient = useSelector((state) => state.clientData.selectedClient);
+  const marka = selectedClient?.marka || '';
+  const client = selectedClient?.client_name || '';
+
   const handleFilePick = async () => {
     try {
       const res = await pick({
@@ -39,6 +40,7 @@ const AddStock = ({ navigation }) => {
 
       const file = res[0];
       setSelectedFile(file);
+
       const filePath = file.uri.replace('file://', '');
       const b64 = await RNFS.readFile(filePath, 'base64');
 
@@ -58,18 +60,19 @@ const AddStock = ({ navigation }) => {
       setHeaders(headerRow);
       setRows(rowData);
     } catch (err) {
-      console.error('Error:', err);
+      console.error('Error reading file:', err);
       Alert.alert('Error', 'Could not read or parse file');
     }
   };
 
-  useEffect(() => {
-    handleFilePick();
-  }, []);
-
   const handleUpload = async () => {
     if (!selectedFile) {
       Alert.alert('Select file first');
+      return;
+    }
+
+    if (!API.defaults.baseURL) {
+      Alert.alert("Configuration Error", "API endpoint is not configured properly.");
       return;
     }
 
@@ -85,27 +88,34 @@ const AddStock = ({ navigation }) => {
       });
       formData.append('client_name', client);
       formData.append('marka', marka);
-console.log(API,'API===============')
-      const res = await axios.post(`${API}api/packing/stock/upload/`, formData, {
+
+      const uploadResponse = await API.post('/api/packing/stock/upload/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      console.log(res,'upload stock')
-      Alert.alert("Success", "Stock Excel uploaded successfully");
-console.log(API,'API===============')
-      try {
-        await axios.post(`${API}api/packing/packing/sync-stock/`);
-        Alert.alert("Success", "Stock quantities synced.");
-        navigation.navigate("StockList");
-      } catch (error) {
-        Alert.alert("Sync Failed", error.message);
-      }
+      console.log('Upload response:', uploadResponse?.data);
 
-      setHeaders([]);
-      setRows([]);
-      setSelectedFile(null);
-    } catch (error) {
-      console.error("Upload error", error);
-      Alert.alert("Upload Failed", error.response?.data?.error || error.message);
+      Alert.alert("Success", "Stock Excel uploaded successfully");
+
+      try {
+        await API.post('/api/packing/packing/sync-stock/');
+        Alert.alert("Success", "Stock quantities synced.");
+        setHeaders([]);
+        setRows([]);
+        setSelectedFile(null);
+        navigation.navigate("StockList");
+      } catch (syncError) {
+        console.error("Sync error:", syncError);
+        Alert.alert("Sync Failed", syncError.response?.data?.error || syncError.message);
+      }
+    } catch (uploadError) {
+      console.error("Upload error:", uploadError);
+      Alert.alert(
+        "Upload Failed",
+        uploadError.response?.data?.error ||
+        uploadError.response?.data?.detail ||
+        uploadError.message ||
+        "An unknown error occurred during upload."
+      );
     } finally {
       setLoading(false);
     }
@@ -113,6 +123,10 @@ console.log(API,'API===============')
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.pickButton} onPress={handleFilePick}>
+        <Text style={styles.pickButtonText}>Pick Stock Excel File</Text>
+      </TouchableOpacity>
+
       {headers.length > 0 && (
         <>
           <Text style={styles.title}>STOCK LIST</Text>
@@ -170,6 +184,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  pickButton: {
+    margin: 16,
+    backgroundColor: '#28a745',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  pickButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   title: {
     fontSize: 20,

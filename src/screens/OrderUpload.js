@@ -12,21 +12,28 @@ import {
 import { pick, types } from '@react-native-documents/picker';
 import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
-import axios from 'axios';
-import { API } from '@env';
+import API from '../components/API'; // Use your centralized Axios instance
 import { useSelector } from 'react-redux';
 
 const OrderUpload = ({ navigation }) => {
   const { height: windowHeight } = useWindowDimensions();
   const selectedClient = useSelector((state) => state.clientData.selectedClient);
+
+  if (!selectedClient) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Please select a client first.</Text>
+      </View>
+    );
+  }
+
   const marka = selectedClient.marka;
-  const client = selectedClient.client_name
+  const client = selectedClient.client_name;
+
   const [headers, setHeaders] = useState([]);
   const [rows, setRows] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(false);
-
-
 
   const handleFilePick = async () => {
     try {
@@ -54,15 +61,16 @@ const OrderUpload = ({ navigation }) => {
         Alert.alert('No data found in file');
         return;
       }
-       console.log(data.length,'exclefiledata')
-      //  console.log(b64,'exclefiledata ws')
+
+      console.log(data.length, 'rows read from excel');
+
       const headerRow = Object.keys(data[0]);
       const rowData = data.map(obj => headerRow.map(key => obj[key] ?? ''));
 
       setHeaders(headerRow);
       setRows(rowData);
     } catch (err) {
-      console.error('Error:', err);
+      console.error('Error reading file:', err);
       Alert.alert('Error', 'Could not read or parse file');
     }
   };
@@ -88,17 +96,20 @@ const OrderUpload = ({ navigation }) => {
       });
       formData.append('client_name', client);
       formData.append('marka', marka);
-      console.log(API,'API===============')
-      const response = await axios.post(`${API}api/orderitem/upload-excel/`, formData, {
+
+      const response = await API.post('/api/orderitem/upload-excel/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      if(response.status == 200){
-        console.log(response)
-      console.log('Success', 'File uploaded successfully!');
-      genrateAsstimate()
-      setHeaders([]);
-      setRows([]);
-      setSelectedFile(null);
+
+      if (response.status === 200) {
+        console.log('Upload success:', response.data);
+        Alert.alert('Success', 'File uploaded successfully!');
+        await generateEstimate();
+        setHeaders([]);
+        setRows([]);
+        setSelectedFile(null);
+      } else {
+        Alert.alert('Error', 'File upload failed');
       }
     } catch (err) {
       console.error('Upload error:', err.response?.data || err.message);
@@ -108,23 +119,23 @@ const OrderUpload = ({ navigation }) => {
     }
   };
 
-  const genrateAsstimate = async () => {
-    console.log(API,'API===============')
+  const generateEstimate = async () => {
     try {
-      const res = await axios.post(
-        `${API}api/asstimate/genrate/`,
-        { client_name: client, marka: marka }
-      );
+      const res = await API.post('/api/asstimate/genrate/', {
+        client_name: client,
+        marka: marka,
+      });
 
       if (res.status === 200) {
-        console.log(res.data.message || "Items merged    successfully");
+        console.log(res.data.message || 'Items merged successfully');
         navigation.navigate('Esstimate');
       } else {
-        console.log("Failed to merge items");
+        console.log('Failed to generate estimate');
+        Alert.alert('Error', 'Failed to generate estimate');
       }
     } catch (error) {
-      console.error(error);
-      console.log("Error", "Could not generate estimate");
+      console.error('Estimate error:', error);
+      Alert.alert('Error', 'Could not generate estimate');
     }
   };
 

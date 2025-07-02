@@ -1,30 +1,41 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import { useDispatch } from 'react-redux';
-import { setToken } from '../../redux/LoginSlice';
-// import { setToken } from '../../redux/ClientDataSlice';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { loginUser } from '../../redux/LoginSlice';
 
 const LogIn = () => {
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
+    const [localError, setLocalError] = useState('');
     const dispatch = useDispatch();
+
+    const { loading, error: reduxError } = useSelector((state) => state.login);
+
     const handleLogin = () => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        setError('');
+        setLocalError('');
 
-        if (!email.trim() || !password.trim()) {
-            setError('Email and password are required.');
-
-        } else if (!emailRegex.test(email.trim())) {
-            setError('Please enter a valid email address.');
-
+        if (!username.trim() || !password.trim()) {
+            setLocalError('Username and password are required.');
         } else {
-            dispatch(setToken('kjdkksdkadkkada'));
-            console.log('Logging in with:', email, password);
-            setError('');
+            submitLogin();
         }
+    };
 
+    const submitLogin = async () => {
+        try {
+            const resultAction = await dispatch(loginUser({ username, password }));
+
+            if (loginUser.fulfilled.match(resultAction)) {
+                console.log("Login success:", resultAction.payload);
+                Alert.alert("Success", "You are logged in!");
+            } else {
+                console.error("Login failed:", resultAction.payload);
+                Alert.alert("Login Failed", resultAction.payload || "Something went wrong.");
+            }
+        } catch (error) {
+            console.error("Unexpected error:", error);
+            Alert.alert("Error", "Unexpected error occurred.");
+        }
     };
 
     return (
@@ -37,12 +48,11 @@ const LogIn = () => {
 
                 <TextInput
                     style={styles.input}
-                    placeholder="Email"
-                    keyboardType="email-address"
+                    placeholder="Username"
                     autoCapitalize="none"
                     placeholderTextColor="#aaa"
-                    value={email}
-                    onChangeText={setEmail}
+                    value={username}
+                    onChangeText={setUsername}
                 />
 
                 <TextInput
@@ -54,10 +64,14 @@ const LogIn = () => {
                     secureTextEntry
                 />
 
-                {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                {(localError || reduxError) && (
+                    <Text style={styles.errorText}>{localError || reduxError}</Text>
+                )}
 
-                <TouchableOpacity style={styles.button} onPress={handleLogin}>
-                    <Text style={styles.buttonText}>Login</Text>
+                <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+                    <Text style={styles.buttonText}>
+                        {loading ? "Logging in..." : "Login"}
+                    </Text>
                 </TouchableOpacity>
             </View>
         </KeyboardAvoidingView>

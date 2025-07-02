@@ -5,15 +5,13 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  BackHandler,
   Dimensions,
   FlatList,
   TextInput,
   ScrollView,
 } from 'react-native';
-import { API } from '@env';
-import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
+import API from '../components/API'; // Use your centralized API instance
 
 const deviceHeight = Dimensions.get('window').height;
 
@@ -25,14 +23,14 @@ const StockList = () => {
 
   const fetchStockData = async () => {
     try {
-      const response = await axios.get(`${API}api/packing/stock/`);
+      const response = await API.get('/api/packing/stock/');
       console.log(response.data);
       if (!Array.isArray(response.data)) {
         throw new Error('Unexpected response format');
       }
       setStockData(response.data);
     } catch (error) {
-      console.error('Axios fetch error:', error);
+      console.error('API fetch error:', error);
       Alert.alert('Error', 'Failed to fetch stock data');
     } finally {
       setLoading(false);
@@ -43,9 +41,6 @@ const StockList = () => {
     fetchStockData();
   }, []);
 
-
-
-  // Filter data based on search query
   const filteredData = useMemo(() => {
     if (!searchQuery) return stockData;
     const query = searchQuery.toLowerCase();
@@ -137,7 +132,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   table: {
-    height: deviceHeight - 160, // screen height minus title + search
+    height: deviceHeight - 160,
   },
   row: {
     flexDirection: 'row',

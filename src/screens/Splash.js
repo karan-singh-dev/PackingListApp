@@ -2,17 +2,14 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Image } from 'react-native';
 
 const Splash = () => {
-    const fadeAnim = useRef(new Animated.Value(0)).current; // Start invisible
-
+    const fadeAnim = useRef(new Animated.Value(0)).current;
     useEffect(() => {
-        // Fade in
         Animated.timing(fadeAnim, {
             toValue: 1,
             duration: 1000,
             useNativeDriver: true,
         }).start();
 
-        // Fade out after 2.5s (before 3s total)
         setTimeout(() => {
             Animated.timing(fadeAnim, {
                 toValue: 0,
@@ -28,8 +25,7 @@ const Splash = () => {
                 <Image
                     source={require('../assets/images/logo.png')}
                     style={styles.logo}
-                    resizeMode="contain"
-                />
+                    resizeMode="contain" />
             </View>
             <Text style={styles.title}>PackingList Pro</Text>
             <Text style={styles.subtitle}>
@@ -44,7 +40,7 @@ export default Splash;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#012B4B', // deep navy for shipping theme
+        backgroundColor: '#012B4B',
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 20,
@@ -63,7 +59,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 32,
         fontWeight: '700',
-        color: '#F8C630', // gold/yellow accent for professionalism
+        color: '#F8C630',
         marginBottom: 10,
         textAlign: 'center',
     },

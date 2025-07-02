@@ -18,7 +18,7 @@ import Share from "react-native-share";
 import FileViewer from "react-native-file-viewer";
 import XLSX from "xlsx";
 import { useSelector } from "react-redux";
-import { API } from "@env";
+import API from "../components/API";
 
 const DisplayPackingList = () => {
   const [data, setData] = useState([]);
@@ -30,8 +30,8 @@ const DisplayPackingList = () => {
   const marka = selectedClient.marka;
 
   const headers = [
-    { label: "Part No", key: "part_no", width: 130 },
-    { label: "Description", key: "description", width: 160 },
+    { label: "Part No", key: "part_no", width: 160 },
+    { label: "Description", key: "description", width: 200 },
     { label: "HSN No", key: "hsn_no", width: 80 },
     { label: "GST", key: "gst", width: 60 },
     { label: "Brand", key: "brand_name", width: 60 },
@@ -71,7 +71,9 @@ const DisplayPackingList = () => {
     try {
       setLoading(true);
       setHasError(false);
-      const res = await axios.get(`${API}api/packing/packing-details/?client=${client}&marka=${marka}`);
+      const res = await API.get("api/packing/packing-details/", {
+        params: { client, marka },
+      });
       setData(res.data);
     } catch (error) {
       console.error("Failed to fetch packing data:", error);
@@ -371,11 +373,11 @@ const DisplayPackingList = () => {
                   widthArr={[partNoHeader.width]}
                 />
                 {tableData.map((rowData, index) => (
-                  <TableWrapper key={index} style={styles.row}>
+                  <TableWrapper key={index} style={[styles.row, { paddingRight: 50 }]}>
                     <Cell
                       data={rowData[0]}
                       textStyle={styles.cellText}
-                      style={[styles.cell, { width: partNoHeader.width }]}
+                      style={[styles.cell, { width: partNoHeader.width, }]}
                     />
                   </TableWrapper>
                 ))}
@@ -420,8 +422,9 @@ const DisplayPackingList = () => {
             </TouchableOpacity>
           </View>
         </>
-      )}
-    </View>
+      )
+      }
+    </View >
   );
 };
 

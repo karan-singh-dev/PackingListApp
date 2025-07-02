@@ -8,8 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import {
   fetchClients, addClientAsync, deleteClientAsync, setSelectedClient,
 } from '../../redux/ClientDataSlice';
-import { API } from '@env';
-import axios from 'axios';
+import API from '../components/API'; // ✅ use configured Axios instance with interceptors
 import { resetNextCaseNumberToOne, setNextCaseNumber } from '../../redux/PackigListSlice';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -28,39 +27,36 @@ const ClientSelection = () => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [confirmClientName, setConfirmClientName] = useState('');
 
-
   useEffect(() => {
     dispatch(fetchClients());
   }, [dispatch]);
 
-  const handleAddClient = () => {
+  const handleAddClient = async () => {
     if (!clientName.trim() || !clientCountry.trim() || !clientMArka.trim()) {
       Alert.alert('Validation Error', 'All fields are required');
       return;
     }
+
     const newClient = {
       client_name: clientName.trim(),
       country: clientCountry.trim(),
       marka: clientMArka.trim(),
     };
 
-    dispatch(addClientAsync(newClient)).then((res) => {
-      if (res.meta.requestStatus === 'fulfilled') {
-        Alert.alert('Success', 'Client added successfully');
-        setClientName('');
-        setClientCountry('');
-        setClientMArka('');
-        setModalVisible(false);
-      } else {
-        Alert.alert('Error', 'Failed to add client');
-      }
-    });
+    try {
+      await dispatch(addClientAsync(newClient)).unwrap();
+      Alert.alert('Success', 'Client added successfully');
+      setClientName('');
+      setClientCountry('');
+      setClientMArka('');
+      setModalVisible(false);
+    } catch (err) {
+      console.error("Add client error:", err);
+      Alert.alert('Error', err?.message || 'Failed to add client');
+    }
   };
 
-  
-
-
-  const handleDeleteClient = () => {
+  const handleDeleteClient = async () => {
     if (!selectedClientData) return;
 
     if (confirmClientName.toLowerCase().trim() !== selectedClientData.client_name.toLowerCase().trim()) {
@@ -68,22 +64,23 @@ const ClientSelection = () => {
       return;
     }
 
-    dispatch(deleteClientAsync(selectedClientData.id)).then((res) => {
-      if (res.meta.requestStatus === 'fulfilled') {
-        Alert.alert('Deleted', 'Client deleted successfully');
-        setSelectedClientKey(null);
-      } else {
-        Alert.alert('Error', 'Failed to delete client');
-      }
+    try {
+      await dispatch(deleteClientAsync(selectedClientData.id)).unwrap();
+      Alert.alert('Deleted', 'Client deleted successfully');
+      setSelectedClientKey(null);
+      dispatch(setSelectedClient(null)); // ✅ Clear selected client in Redux too
+    } catch (err) {
+      console.error("Delete client error:", err);
+      Alert.alert('Error', err?.message || 'Failed to delete client');
+    } finally {
       setDeleteModalVisible(false);
       setConfirmClientName('');
-    });
+    }
   };
-
 
   const fetchData = async (selected) => {
     try {
-      const res = await axios.get(`${API}api/packing/packing-details/?client=${selected.client_name}&marka=${selected.marka}`);
+      const res = await API.get(`/api/packing/packing-details/?client=${selected.client_name}&marka=${selected.marka}`);
       if (res.status === 200) {
         if (res.data.length > 0) {
           dispatch(setNextCaseNumber(res.data[res.data.length - 1].case_no_end + 1));
@@ -125,9 +122,13 @@ const ClientSelection = () => {
           onChange={(item) => handleClientSelection(item.value)}
           style={styles.dropdown}
           disable={loading}
+          keyExtractor={(item) => item.value} // ✅ add key extractor for better rendering
         />
 
         {error && <Text style={styles.errorText}>Error: {error}</Text>}
+        {!loading && clients.length === 0 && (
+          <Text style={styles.errorText}>No clients found. Add one to start.</Text>
+        )}
 
         <TouchableOpacity style={styles.primaryButton} onPress={() => setModalVisible(true)}>
           <Text style={styles.primaryButtonText}>ADD CLIENT NAME</Text>
@@ -164,12 +165,10 @@ const ClientSelection = () => {
             </TouchableOpacity>
           </View>
         )}
-
-
       </ScrollView>
-      {/* Delete client */}
 
-      <Modal visible={deleteModalVisible} transparent animationType="slide">
+      {/* Delete Modal */}
+      <Modal visible={deleteModalVisible} transparent animationType="fade">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Confirm Deletion</Text>
@@ -193,8 +192,8 @@ const ClientSelection = () => {
         </View>
       </Modal>
 
-      {/* Modal for adding new client */}
-      <Modal visible={modalVisible} transparent animationType="slide">
+      {/* Add Client Modal */}
+      <Modal visible={modalVisible} transparent animationType="fade">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add New Client</Text>
@@ -240,7 +239,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#012B4B',
   },
   scrollContent: {
     paddingBottom: 40,
@@ -311,7 +310,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 10,
     padding: 20,
-
   },
   modalTitle: {
     fontSize: 18,
@@ -328,7 +326,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F7F7',
     marginBottom: 12,
     color: '#000',
-
   },
   errorText: {
     color: 'red',
