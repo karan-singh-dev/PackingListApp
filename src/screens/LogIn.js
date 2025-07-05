@@ -22,19 +22,16 @@ const LogIn = () => {
     };
 
     const submitLogin = async () => {
+
         try {
             const resultAction = await dispatch(loginUser({ username, password }));
-
             if (loginUser.fulfilled.match(resultAction)) {
                 console.log("Login success:", resultAction.payload);
-                Alert.alert("Success", "You are logged in!");
             } else {
                 console.error("Login failed:", resultAction.payload);
-                Alert.alert("Login Failed", resultAction.payload || "Something went wrong.");
             }
         } catch (error) {
             console.error("Unexpected error:", error);
-            Alert.alert("Error", "Unexpected error occurred.");
         }
     };
 

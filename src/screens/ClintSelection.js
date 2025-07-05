@@ -8,7 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import {
   fetchClients, addClientAsync, deleteClientAsync, setSelectedClient,
 } from '../../redux/ClientDataSlice';
-import API from '../components/API'; // ✅ use configured Axios instance with interceptors
+import API from '../components/API';
 import { resetNextCaseNumberToOne, setNextCaseNumber } from '../../redux/PackigListSlice';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -67,16 +67,18 @@ const ClientSelection = () => {
     try {
       await dispatch(deleteClientAsync(selectedClientData.id)).unwrap();
       Alert.alert('Deleted', 'Client deleted successfully');
+      setDeleteModalVisible(false);    // ✅ close modal BEFORE clearing selected
+      setConfirmClientName('');
       setSelectedClientKey(null);
-      dispatch(setSelectedClient(null)); // ✅ Clear selected client in Redux too
+      dispatch(setSelectedClient(null));
     } catch (err) {
       console.error("Delete client error:", err);
       Alert.alert('Error', err?.message || 'Failed to delete client');
-    } finally {
-      setDeleteModalVisible(false);
+      setDeleteModalVisible(false);    // ✅ also close modal on error
       setConfirmClientName('');
     }
   };
+
 
   const fetchData = async (selected) => {
     try {
@@ -99,7 +101,7 @@ const ClientSelection = () => {
 
     if (selected) {
       fetchData(selected);
-      dispatch(setSelectedClient(selected));
+      dispatch(setSelectedClient(selected));   // ✅ store client in Redux
     }
   };
 
@@ -122,7 +124,7 @@ const ClientSelection = () => {
           onChange={(item) => handleClientSelection(item.value)}
           style={styles.dropdown}
           disable={loading}
-          keyExtractor={(item) => item.value} // ✅ add key extractor for better rendering
+          keyExtractor={(item) => item.value}
         />
 
         {error && <Text style={styles.errorText}>Error: {error}</Text>}
@@ -151,9 +153,10 @@ const ClientSelection = () => {
 
             <TouchableOpacity
               style={styles.primaryButton}
-              onPress={() =>
-                navigation.navigate('NavigationPage', { client: selectedClientData })
-              }
+              onPress={() => {
+                dispatch(setSelectedClient(selectedClientData)); // ✅ store client
+                navigation.replace('AppDrawer');                 // ✅ navigate to drawer
+              }}
             >
               <Text style={styles.primaryButtonText}>
                 GO WITH {selectedClientData.client_name.toUpperCase()} ({selectedClientData.marka.toUpperCase()})
@@ -168,29 +171,42 @@ const ClientSelection = () => {
       </ScrollView>
 
       {/* Delete Modal */}
+      {/* Delete Modal */}
       <Modal visible={deleteModalVisible} transparent animationType="fade">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Confirm Deletion</Text>
-            <Text style={{ marginBottom: 10 }}>
-              Type "{selectedClientData?.client_name}" to confirm deletion.
-            </Text>
-            <TextInput
-              placeholder="Client Name"
-              placeholderTextColor="#ccc"
-              style={styles.input}
-              value={confirmClientName}
-              onChangeText={setConfirmClientName}
-            />
-            <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteClient}>
-              <Text style={styles.deleteButtonText}>Delete</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.primaryButton} onPress={() => setDeleteModalVisible(false)}>
-              <Text style={styles.primaryButtonText}>Cancel</Text>
-            </TouchableOpacity>
+            {selectedClientData ? (
+              <>
+                <Text style={styles.modalTitle}>Confirm Deletion</Text>
+                <Text style={{ marginBottom: 10 }}>
+                  Type "{selectedClientData.client_name}" to confirm deletion.
+                </Text>
+                <TextInput
+                  placeholder="Client Name"
+                  placeholderTextColor="#ccc"
+                  style={styles.input}
+                  value={confirmClientName}
+                  onChangeText={setConfirmClientName}
+                />
+                <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteClient}>
+                  <Text style={styles.deleteButtonText}>Delete</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.primaryButton} onPress={() => setDeleteModalVisible(false)}>
+                  <Text style={styles.primaryButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <View>
+                <Text style={styles.modalTitle}>No client selected.</Text>
+                <TouchableOpacity style={styles.primaryButton} onPress={() => setDeleteModalVisible(false)}>
+                  <Text style={styles.primaryButtonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
+
 
       {/* Add Client Modal */}
       <Modal visible={modalVisible} transparent animationType="fade">

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   TextInput,
   ScrollView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import API from '../components/API'; // Use your centralized API instance
 
 const deviceHeight = Dimensions.get('window').height;
@@ -37,9 +37,13 @@ const StockList = () => {
     }
   };
 
-  useEffect(() => {
-    fetchStockData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchStockData();;
+    }, [])
+  );
+
+
 
   const filteredData = useMemo(() => {
     if (!searchQuery) return stockData;

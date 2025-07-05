@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import API from "../src/components/API"; // ✅ Your pre-configured Axios instance
+import API from "../src/components/API";
 
-// 🔄 Fetch all clients
 export const fetchClients = createAsyncThunk(
   'clientData/fetchClients',
   async (_, thunkAPI) => {
@@ -15,7 +14,6 @@ export const fetchClients = createAsyncThunk(
   }
 );
 
-// ➕ Add a new client
 export const addClientAsync = createAsyncThunk(
   'clientData/addClientAsync',
   async (clientData, thunkAPI) => {
@@ -29,7 +27,7 @@ export const addClientAsync = createAsyncThunk(
   }
 );
 
-// ✏️ Update existing client
+
 export const updateClientAsync = createAsyncThunk(
   'clientData/updateClientAsync',
   async (clientData, thunkAPI) => {
@@ -43,7 +41,7 @@ export const updateClientAsync = createAsyncThunk(
   }
 );
 
-// ❌ Delete a client
+
 export const deleteClientAsync = createAsyncThunk(
   'clientData/deleteClientAsync',
   async (clientId, thunkAPI) => {
@@ -57,7 +55,7 @@ export const deleteClientAsync = createAsyncThunk(
   }
 );
 
-// 🔎 Slice definition
+
 const clientDataSlice = createSlice({
   name: 'clientData',
   initialState: {

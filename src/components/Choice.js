@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { setPackingType } from '../../redux/PackigListSlice';
+import SeperatePacking from './SeperatePacking';
+import MixPacking from './MixPacking';
 
 const Choice = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -11,15 +13,11 @@ const Choice = ({ navigation }) => {
   const route = useRoute();
   const item = route.params.item
   const { PackingType } = useSelector((state) => state.packing);
-
+  console.log(item, 'item')
   console.log(PackingType, 'PackingType====')
   useEffect(() => {
     if (PackingType == null) {
       setModalVisible(true)
-    } else if (PackingType == 'seperate') {
-      navigation.navigate('SeperatePacking', { item: item });
-    } else {
-      navigation.navigate('MixPacking', { item: item });
     }
     ;
   }, []);
@@ -39,34 +37,41 @@ const Choice = ({ navigation }) => {
 
   return (
     <View>
-      <Modal visible={modalVisible} transparent={true} animationType="slide">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select your packing type</Text>
+      {PackingType === 'SeperatePacking' ? (
+        <SeperatePacking />
+      ) : PackingType === 'MixPacking' ? (
+        <MixPacking />
+      ) : (
+        <Modal visible={modalVisible} transparent animationType="slide">
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Select your packing type</Text>
 
-            <TouchableOpacity
-              style={styles.optionContainer}
-              onPress={() => handleSelection('seperate')}
-            >
-              <View style={styles.radioCircle}>
-                {selectedOption === 'seperate' && <View style={styles.selectedRb} />}
-              </View>
-              <Text style={styles.optionText}>Separate</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.optionContainer}
+                onPress={() => handleSelection('seperate')}
+              >
+                <View style={styles.radioCircle}>
+                  {selectedOption === 'seperate' && <View style={styles.selectedRb} />}
+                </View>
+                <Text style={styles.optionText}>Separate</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.optionContainer}
-              onPress={() => handleSelection('Mix')}
-            >
-              <View style={styles.radioCircle}>
-                {selectedOption === 'Mix' && <View style={styles.selectedRb} />}
-              </View>
-              <Text style={styles.optionText}>Mix</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.optionContainer}
+                onPress={() => handleSelection('Mix')}
+              >
+                <View style={styles.radioCircle}>
+                  {selectedOption === 'Mix' && <View style={styles.selectedRb} />}
+                </View>
+                <Text style={styles.optionText}>Mix</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      )}
     </View>
+
   );
 };
 

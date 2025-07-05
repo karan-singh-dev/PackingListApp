@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,9 +10,11 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  BackHandler
+  BackHandler,
 } from "react-native";
+import Icon from 'react-native-vector-icons/Feather';
 
+import { InteractionManager } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
 import {
@@ -21,8 +23,7 @@ import {
   setPackingType,
   submitPackingDetails,
 } from "../../redux/PackigListSlice";
-import axios from "axios";
-import { API } from '@env';
+import API from "../components/API"; // 
 import { Dropdown } from "react-native-element-dropdown";
 
 const initialForm = {
@@ -56,7 +57,7 @@ const allowedUpdateKeys = ["gross_wt", "length", "width", "height"];
 const disable = [
   "part_no", "description", "hsn_no", "gst", "brand_name",
   "case_no_start", "case_no_end",
-  "total_case", "total_net_wt", "total_gross_wt", "cbm", "total_net_wt", "packed_in_plastic_bag"
+  "total_case", "total_net_wt", "total_gross_wt", "cbm", "packed_in_plastic_bag",
 ];
 
 const MixPacking = () => {
@@ -64,11 +65,15 @@ const MixPacking = () => {
   const client = selectedClient.client_name;
   const marka = selectedClient.marka;
 
+  const [Back, setBack] = useState(false);
+  const [choiceChange, setchoiceChange] = useState(false);
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const route = useRoute();
 
   const { nextCaseNumber, packing, stock, loading, estimateList, PackingType } = useSelector((state) => state.packing);
+
+  console.log(nextCaseNumber)
 
   const [updates, setupdates] = useState({
     gross_wt: 0,
@@ -86,27 +91,15 @@ const MixPacking = () => {
 
   const passedData = useMemo(() => route.params?.item || "", [route.params]);
 
+
+
+
+
   useEffect(() => {
     dispatch(fetchPackingData({ client, marka }));
     setForm((prev) => ({ ...prev, case_no_start: nextCaseNumber.toString() }));
-  }, []);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await axios.get(`${API}api/packing/net-weight/`, {
-          params: { part_no: form.part_no },
-        });
-        setNetWt(res.data);
-      } catch (err) {
-        Alert.alert(err.response?.data?.error || "Error fetching data");
-      }
-    };
-    if (form.part_no) {
-      fetchData();
-    }
-  }, [form.part_no]);
-
+  }, [passedData]);
 
 
 
@@ -115,8 +108,23 @@ const MixPacking = () => {
   useEffect(() => {
     if (passedData) {
       setForm((prev) => ({ ...prev, part_no: passedData }));
+      setSelectedOption("");
+      setCustomInput("");
     }
   }, [passedData]);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await API.get(`api/packing/net-weight/`, {
+          params: { part_no: form.part_no },
+        });
+        setNetWt(res.data);
+      } catch (err) {
+        Alert.alert(err.response?.data?.error || "Error fetching data");
+      }
+    };
+    if (form.part_no) fetchData();
+  }, [form.part_no, passedData]);
 
   useEffect(() => {
     if (form.part_no && estimateList.length) {
@@ -128,7 +136,7 @@ const MixPacking = () => {
           box_mrp: item.mrp || "",
           description: item.description || "",
           hsn_no: item.hsn || "",
-          gst: item.tax_percent?.toString() || "",
+          gst: parseFloat(item.tax_percent) || "",
         }));
       }
     }
@@ -136,14 +144,11 @@ const MixPacking = () => {
 
   useEffect(() => {
     if (!form.part_no || !stock.length || !packing.length) return;
-
     const stockMatch = stock.find((s) => s.part_no === form.part_no);
     const packingMatch = packing.find((p) => p.part_no === form.part_no);
-
     const stockQty = stockMatch?.qty || 0;
     const packingQty = packingMatch?.qty || 0;
     const minQty = Math.min(stockQty, packingQty);
-
     setForm((prev) => ({
       ...prev,
       total_packing_qty: minQty.toString(),
@@ -154,20 +159,17 @@ const MixPacking = () => {
   useEffect(() => {
     const netWt = parseFloat(form.net_wt);
     const qty = parseFloat(form.total_packing_qty);
-    const totalQty = parseInt(form.total_packing_qty, 10);
     const caseStart = parseInt(form.case_no_start, 10);
     if (!isNaN(netWt) && !isNaN(qty)) {
-      form.total_net_wt = (netWt * qty).toFixed(2).toString();
+      form.total_net_wt = (netWt * qty).toFixed(3).toString();
     }
-
     const totalCases = 1;
     const caseEnd = caseStart;
-
     setForm((prev) => ({
       ...prev,
       total_case: totalCases.toString(),
       case_no_end: caseEnd.toString(),
-      packed_in_plastic_bag: totalQty.toString(),
+      packed_in_plastic_bag: qty.toString(),
     }));
   }, [form.net_wt, form.total_packing_qty, form.packed_in_plastic_bag, form.case_no_start]);
 
@@ -176,8 +178,7 @@ const MixPacking = () => {
     const w = parseFloat(updates.width);
     const h = parseFloat(updates.height);
     const total = 1;
-
-    if (!isNaN(l) && !isNaN(w) && !isNaN(h) && !isNaN(total)) {
+    if (!isNaN(l) && !isNaN(w) && !isNaN(h)) {
       const cbm = (l * w * h * total * 0.00001638).toFixed(4);
       setupdates((prev) => ({ ...prev, cbm: cbm }));
     }
@@ -186,7 +187,7 @@ const MixPacking = () => {
   useEffect(() => {
     const grossWt = parseFloat(updates.gross_wt);
     if (!isNaN(grossWt)) {
-      const totalGrossWt = (grossWt).toFixed(2);
+      const totalGrossWt = (grossWt).toFixed(3);
       setupdates((prev) => ({ ...prev, total_gross_wt: totalGrossWt }));
     }
   }, [updates.gross_wt]);
@@ -198,69 +199,152 @@ const MixPacking = () => {
     }
   };
 
+
+
+
+
+
+  // const handleBackPress = async () => {
+  //   try {
+  //     const res = await API.get("api/packing/packing-details/", {
+  //       params: { client, marka },
+  //     });
+  //     if (res.data.length == 0 || res.data[res.data.length - 1].cbm !== "0.0000") {
+  //       dispatch(setPackingType(null));
+  //       // console.log(res.data[res.data.length - 1].cbm)
+  //     }
+  //     navigation.navigate("RowPackingList");
+  //   } catch (error) {
+  //     console.error("Failed to fetch packing data:", error);
+
+  //   }
+  // };
+
+  // useFocusEffect(
+  //   React.useCallback(() => {
+  //     const onBackPress = () => {
+  //       handleBackPress();
+  //       return false;
+  //     };
+
+  //     const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+  //     const unsubscribe = navigation.addListener('beforeRemove', () => {
+
+  //       handleBackPress();
+  //     });
+
+  //     return () => {
+  //       backHandler.remove();
+  //       unsubscribe();
+  //     };
+  //   }, [navigation])
+  // );
+
+  const handleNetwt = async () => {
+    try {
+      const netWtValue = parseFloat(form.net_wt);
+      if (isNaN(netWtValue)) {
+        Alert.alert("Invalid Input", "Net weight must be a valid number.");
+        return;
+      }
+
+      const res = await API.post(
+        "api/packing/net-weight/",
+        {
+          part_no: form.part_no,
+          net_wt: netWtValue,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      console.log("Net weight posted successfully:", res.data);
+      // Alert.alert("Success", "Net weight saved successfully!");
+    } catch (err) {
+      console.error("Net weight post error:", err.response?.data || err.message);
+      Alert.alert("Error", err.response?.data?.error || "Error posting net weight");
+    }
+  };
+
+
+
+
+
   const handleCaseUpdate = async () => {
     try {
-      const res = await axios.post(`${API}api/packing/packingdetail/update-by-case/`, {
+      const res = await API.post('api/packing/packingdetail/update-by-case/', {
         case_no_start: form.case_no_start.toString(),
-        client: client,
+        client,
         marka,
         updates,
       });
       if (res.status === 200) {
         setupdates({});
         setShowFields(false);
-        navigation.navigate('PackingList');
-        dispatch(setPackingType(null));
-        dispatch(setNextCaseNumber(nextCaseNumber + 1));
+        // dispatch(setPackingType(null)); 
+        // dispatch(setNextCaseNumber(nextCaseNumber.toString() + 1));
         setForm(initialForm);
+
+        navigation.navigate('PackingList');
       }
     } catch (error) {
-      Alert.alert("Error", "Update failed: " + (error?.response?.data?.message || "Bad Request"));
+      console.log('API error details:', error?.response?.data || error?.message || error);
+
+      let errorMessage = "Bad Request"; // fallback
+
+      if (error?.response?.data) {
+        const errData = error.response.data;
+        if (typeof errData === 'string') {
+          errorMessage = errData;
+        } else if (typeof errData === 'object') {
+          errorMessage = errData.message || JSON.stringify(errData);
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      Alert.alert("Error", "Update failed: " + errorMessage);
     }
   };
 
-  useFocusEffect(
-    React.useCallback(() => {
-      const onBackPress = () => {
-        dispatch(setPackingType(null));
-        navigation.navigate('RowPackingList');
-        return true; // prevent default back behavior
-      };
 
-      const subscription = BackHandler.addEventListener(
-        'hardwareBackPress',
-        onBackPress
-      );
-
-      return () => subscription.remove();
-    }, [dispatch, navigation])
-  );
 
 
   const handleSubmit = async () => {
+
     try {
       await dispatch(submitPackingDetails({ form, passedData, client, marka, PackingType })).unwrap();
-      Alert.alert("Success", "Packing detail added.");
-      dispatch(setNextCaseNumber(nextCaseNumber));
+      // dispatch(setNextCaseNumber(nextCaseNumber));
+
       Alert.alert(
         'Success',
         'Do you want to add more items to this case?',
         [
-          { text: 'NO', onPress: () => setShowFields(true), style: 'cancel' },
-          { text: 'YES', onPress: () => navigation.navigate('RowPackingList') },
+          { text: 'NO', onPress: () => { setShowFields(true) }, style: 'cancel' },
+          { text: 'YES', onPress: () => { setForm(initialForm), handleNetwt(), navigation.navigate('RowPackingList') } },
         ],
         { cancelable: false }
       );
+
     } catch (error) {
+      console.log('error', error)
       Alert.alert("Error", "Something went wrong.");
     }
   };
 
+
+
+
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>📦 Start Packing</Text>
-
+        {/* <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
+          <Icon name="arrow-left" size={28} color="#007AFF" />
+        </TouchableOpacity> */}
+        <Text style={styles.title}>📦 Start Mix Packing</Text>
         <View style={styles.card}>
           {!showFields &&
             Object.entries(form).map(([key, value]) => {
@@ -363,68 +447,62 @@ const MixPacking = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    backgroundColor: "#f2f4f7",
-    flexGrow: 1,
+  container: { padding: 20, backgroundColor: "#f2f4f7", flexGrow: 1 },
+  title: { fontSize: 28, fontWeight: "700", textAlign: "center", marginBottom: 20, color: "#333" },
+  card: { backgroundColor: "#fff", borderRadius: 12, padding: 16, elevation: 3, shadowColor: "#000", shadowOpacity: 0.1, shadowOffset: { width: 0, height: 2 }, shadowRadius: 4 },
+  inputGroup: { marginBottom: 14 },
+  label: { fontSize: 14, color: "#555", marginBottom: 6, textTransform: "capitalize" },
+  input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 10, padding: 10, backgroundColor: "#fefefe", fontSize: 14 },
+  disabledInput: { backgroundColor: "#e0e0e0", color: "#888" },
+  dropdownContainer: { borderWidth: 1, borderColor: "#ccc", borderRadius: 10, paddingHorizontal: 8, backgroundColor: "#fefefe", marginTop: 6 },
+  button: { marginTop: 24, backgroundColor: "#007AFF", borderRadius: 10, paddingVertical: 14, alignItems: "center" },
+  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    textAlign: "center",
-    marginBottom: 20,
-    color: "#333",
-  },
-  card: {
-    backgroundColor: "#fff",
+  modalContent: {
+    width: '80%',
+    backgroundColor: '#fff',
+    padding: 24,
     borderRadius: 12,
-    padding: 16,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
+    elevation: 5,
   },
-  inputGroup: {
-    marginBottom: 14,
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 20,
   },
-  label: {
-    fontSize: 14,
-    color: "#555",
-    marginBottom: 6,
-    textTransform: "capitalize",
+  modalButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginVertical: 8,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    padding: 10,
-    backgroundColor: "#fefefe",
-    fontSize: 14,
-  },
-  disabledInput: {
-    backgroundColor: "#e0e0e0",
-    color: "#888",
-  },
-  dropdownContainer: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    backgroundColor: "#fefefe",
-    marginTop: 6,
-  },
-  button: {
-    marginTop: 24,
-    backgroundColor: "#007AFF",
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#fff",
+  modalButtonText: {
+    color: '#fff',
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '600',
+  },
+  disabledButton: {
+    backgroundColor: '#aaa',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    zIndex: 10,
+    padding: 8,
   },
 });
 

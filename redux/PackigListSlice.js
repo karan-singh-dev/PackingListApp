@@ -59,7 +59,7 @@ export const submitPackingDetails = createAsyncThunk(
         length: Number(form.length) || 0,
         width: Number(form.width) || 0,
         height: Number(form.height) || 0,
-        gst: form.gst !== '' ? Number(form.gst) : null,
+        gst: parseFloat(form.gst) || 0,
 
         mrp_invoice: Number(form.mrp_invoice) || 0,
         mrp_box: Number(form.box_mrp) || 0,

@@ -12,6 +12,8 @@ import {
   Platform,
   BackHandler,
 } from "react-native";
+import Icon from 'react-native-vector-icons/Feather';
+import { InteractionManager } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -21,8 +23,7 @@ import {
   setPackingType,
   submitPackingDetails,
 } from "../../redux/PackigListSlice";
-import axios from "axios";
-import { API } from '@env';
+import API from '../components/API';  // ✅ updated import
 import { Dropdown } from 'react-native-element-dropdown';
 
 const initialForm = {
@@ -66,7 +67,9 @@ const SeperatePacking = () => {
   const [customInput, setCustomInput] = useState("");
   const { nextCaseNumber, packing, stock, loading, estimateList } = useSelector((state) => state.packing);
 
-  console.log(stock, "nextCaseNumber, packing, stock, loading, estimateList")
+  // console.log('nextCaseNumber', nextCaseNumber)
+
+
 
   const [form, setForm] = useState(initialForm);
   const notShow = HIDDEN_FIELDS;
@@ -85,38 +88,40 @@ const SeperatePacking = () => {
 
   const passedData = useMemo(() => route.params?.item || "", [route.params]);
 
-  console.log(passedData, 'items')
+
+
+  useEffect(() => {
+    dispatch(fetchPackingData({ client, marka }));
+    setForm((prev) => ({ ...prev, case_no_start: nextCaseNumber.toString() }));
+  }, [passedData]);
+
+  useEffect(() => {
+    if (passedData) {
+      setForm((prev) => ({ ...prev, part_no: passedData }));
+      setSelectedOption("");
+      setCustomInput("");
+    }
+  }, [passedData]);
+
 
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(`${API}api/packing/net-weight/`, {
-          params: { part_no: form.part_no },
+        const res = await API.get('api/packing/net-weight/', {
+          params: { part_no: form.part_no },  // <- use `params` for GET
         });
         setNetWt(res.data);
-        console.log(res.data)
+        console.log(res.data, 'ok');
       } catch (err) {
-        Alert.alert(err.response?.data?.error || "Error fetching data");
+        console.log(err.response?.data || err.message, '===================');
+        // Optional: Alert.alert(err.response?.data?.error || "Error fetching data");
       }
     };
     if (form.part_no) {
       fetchData();
     }
   }, [form.part_no]);
-
-  useEffect(() => {
-    dispatch(fetchPackingData({ client, marka }));
-    setForm((prev) => ({ ...prev, case_no_start: nextCaseNumber.toString() }));
-  }, []);
-
-  useEffect(() => {
-    if (passedData) {
-      setForm((prev) => ({ ...prev, part_no: passedData }));
-    }
-  }, [passedData]);
-
-
 
   useEffect(() => {
     if (form.part_no && estimateList.length) {
@@ -189,11 +194,11 @@ const SeperatePacking = () => {
     const gross = parseFloat(form.gross_wt);
     const total = parseFloat(form.total_case);
     if (!isNaN(net) && !isNaN(qty)) {
-      const total_net_wt = (net * qty).toFixed(2).toString();
+      const total_net_wt = (net * qty).toFixed(3).toString();
       setForm((prev) => ({ ...prev, total_net_wt }));
     }
     if (!isNaN(gross) && !isNaN(total)) {
-      const total_gross_wt = (gross * total).toFixed(2).toString();
+      const total_gross_wt = (gross * total).toFixed(3).toString();
       setForm((prev) => ({ ...prev, total_gross_wt }));
     }
   }, [form.net_wt, form.total_packing_qty, form.gross_wt, form.packed_in_plastic_bag]);
@@ -211,31 +216,84 @@ const SeperatePacking = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+
+
+
+  const handleNetwt = async () => {
+    try {
+      const netWtValue = parseFloat(form.net_wt);
+      if (isNaN(netWtValue)) {
+        Alert.alert("Invalid Input", "Net weight must be a valid number.");
+        return;
+      }
+
+      const res = await API.post(
+        "api/packing/net-weight/",
+        {
+          part_no: form.part_no,
+          net_wt: netWtValue,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      console.log("Net weight posted successfully:", res.data);
+    } catch (err) {
+      console.error("Net weight post error:", err.response?.data || err.message);
+    }
+  };
+
+
+
+  const handleBackPress = async () => {
+    try {
+      const res = await API.get("api/packing/packing-details/", {
+        params: { client, marka },
+      });
+      if (res.data.length == 0 || res.data[res.data.length - 1].cbm !== "0.0000") {
+        dispatch(setPackingType(null));
+        console.log(res.data[res.data.length - 1].cbm)
+      }
+      navigation.navigate("RowPackingList");
+    } catch (error) {
+      console.error("Failed to fetch packing data:", error);
+
+    }
+  };
+
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
-        dispatch(setPackingType(null));
-        navigation.replace('RowPackingList');
-        return true; // prevent default back behavior
+        handleBackPress();
+        return false;
       };
 
-      const subscription = BackHandler.addEventListener(
-        'hardwareBackPress',
-        onBackPress
-      );
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
 
-      return () => subscription.remove();
-    }, [dispatch, navigation])
+      const unsubscribe = navigation.addListener('beforeRemove', () => {
+
+        handleBackPress();
+      });
+
+      return () => {
+        backHandler.remove();
+        unsubscribe();
+      };
+    }, [navigation])
   );
+
 
 
   const handleSubmit = async () => {
     try {
       const res = await dispatch(submitPackingDetails({ form, passedData, client, marka })).unwrap();
+      dispatch(setNextCaseNumber(parseInt(nextCaseNumber) + 1));
       Alert.alert("Success", "Packing detail added.");
       setForm(initialForm);
+      handleNetwt();
       dispatch(setPackingType(null));
-      dispatch(setNextCaseNumber(parseInt(form.case_no_end) + 1));
       navigation.navigate("PackingList");
     } catch (error) {
       console.error("Packing submit error:", error);
@@ -243,15 +301,16 @@ const SeperatePacking = () => {
     }
   };
 
-
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1 }}
     >
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>📦 Add Product</Text>
+        <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
+          <Icon name="arrow-left" size={28} color="#007AFF" />
+        </TouchableOpacity>
+        <Text style={styles.title}> Start Seperate Packing</Text>
         <View style={styles.card}>
           {Object.entries(form).map(([key, value]) => {
             if (notShow.includes(key)) return null;
@@ -321,6 +380,8 @@ const SeperatePacking = () => {
           )}
         </TouchableOpacity>
       </ScrollView>
+
+
     </KeyboardAvoidingView>
   );
 };
@@ -330,6 +391,16 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: "#f2f4f7",
     flexGrow: 1,
+  },
+  backButton: {
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButtonText: {
+    color: '#007AFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   title: {
     fontSize: 28,
@@ -395,8 +466,50 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     marginTop: 4,
   },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: '#fff',
+    padding: 24,
+    borderRadius: 12,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    zIndex: 10,
+    padding: 8,
+  },
+
 });
-
-
 
 export default SeperatePacking;

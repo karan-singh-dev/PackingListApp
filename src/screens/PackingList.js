@@ -1,23 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ActivityIndicator,
-  TouchableOpacity,
   ScrollView,
+  TouchableOpacity,
   Alert,
-  Platform,
-  PermissionsAndroid,
-  NativeModules,
 } from "react-native";
-import axios from "axios";
 import { Table, TableWrapper, Row, Cell } from "react-native-table-component";
+import { useSelector } from "react-redux";
+import { useFocusEffect } from "@react-navigation/native";
 import RNFS from "react-native-fs";
 import Share from "react-native-share";
-import FileViewer from "react-native-file-viewer";
 import XLSX from "xlsx";
-import { useSelector } from "react-redux";
 import API from "../components/API";
 
 const DisplayPackingList = () => {
@@ -53,6 +49,7 @@ const DisplayPackingList = () => {
     { label: "Width", key: "width", width: 80 },
     { label: "Height", key: "height", width: 80 },
     { label: "CBM", key: "cbm", width: 80 },
+    { label: "BRAND NAME", key: "brand_name", width: 80 },
   ];
 
   const sharedFields = [
@@ -83,9 +80,11 @@ const DisplayPackingList = () => {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [client, marka])
+  );
 
   const groupData = () => {
     const grouped = {};
@@ -100,7 +99,6 @@ const DisplayPackingList = () => {
   const generateTableRows = () => {
     const grouped = groupData();
     const allRows = [];
-
     for (const group of Object.values(grouped)) {
       let prevSharedValues = {};
       group.forEach((item, idx) => {
@@ -119,239 +117,101 @@ const DisplayPackingList = () => {
     return allRows;
   };
 
-  const requestAndroidPermissions = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        if (Platform.Version >= 33) {
-          // Android 13+ — request granular media permissions
-          const results = await PermissionsAndroid.requestMultiple([
-            PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
-            PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO,
-            PermissionsAndroid.PERMISSIONS.READ_MEDIA_AUDIO,
-          ]);
-          const granted = Object.values(results).every(
-            r => r === PermissionsAndroid.RESULTS.GRANTED
-          );
-          return granted;
-        }
+  const calculateTotalsFromTableData = () => {
+    const totals = {
+      cbm: 0,
+      total_gross_wt: 0,
+      total_net_wt: 0,
+      total_case: 0,
+      total_mrp: 0,
+    };
 
-        if (Platform.Version >= 30) {
-          // Android 11+ — request MANAGE_EXTERNAL_STORAGE
-          const result = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.MANAGE_EXTERNAL_STORAGE
-          );
-          return result === PermissionsAndroid.RESULTS.GRANTED;
-        }
-
-        // Android 10 and below
-        const read = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE
-        );
-        const write = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
-        );
-        return (
-          read === PermissionsAndroid.RESULTS.GRANTED &&
-          write === PermissionsAndroid.RESULTS.GRANTED
-        );
-      } catch (err) {
-        console.error("Permission request error:", err);
-        return false;
-      }
-    }
-    return true;
-  };
-
-
-
-
-
-  const generateAndSaveExcel = async () => {
-    try {
-      console.log("Starting Excel generation...");
-
-      const wsData = [headers.map((h) => h.label)];
-      const merges = [];
-      const grouped = groupData();
-      let currentRow = 1;
-
-      console.log("Grouped data:", Object.keys(grouped).length, "groups");
-
-      for (const group of Object.values(grouped)) {
-        const groupSize = group.length;
-        if (groupSize === 0) continue;
-
-        console.log(`Processing group with ${groupSize} rows`);
-
-        group.forEach((item, idx) => {
-          const row = headers.map(({ key }) => {
-            if (sharedFields.includes(key)) {
-              return idx === 0 ? item[key] : "";
-            }
-            return item[key];
-          });
-          wsData.push(row);
-          currentRow++;
-        });
-
-        sharedFields.forEach((key) => {
-          const colIdx = headers.findIndex((h) => h.key === key);
-          if (colIdx === -1) return;
-
-          const startRow = currentRow - groupSize;
-          const endRow = currentRow - 1;
-          if (startRow < endRow) {
-            merges.push({
-              s: { r: startRow, c: colIdx },
-              e: { r: endRow, c: colIdx },
-            });
-            console.log(`Merge added: ${key} from row ${startRow + 1} to ${endRow + 1}, col ${colIdx}`);
-          }
-        });
-      }
-
-      const ws = XLSX.utils.aoa_to_sheet(wsData);
-      console.log("Merges to apply:", merges);
-      ws["!merges"] = merges;
-
-      ws["!cols"] = headers.map((h) => ({ wpx: h.width }));
-
-      headers.forEach((header, colIdx) => {
-        if (sharedFields.includes(header.key)) {
-          for (let row = 1; row < wsData.length; row++) {
-            const cellRef = XLSX.utils.encode_cell({ r: row, c: colIdx });
-            if (!ws[cellRef]) ws[cellRef] = {};
-            ws[cellRef].s = { alignment: { vertical: "center", horizontal: "center" } };
+    tableData.forEach((row) => {
+      headers.forEach(({ key }, idx) => {
+        const cellValue = row[idx];
+        if (cellValue !== "") {
+          switch (key) {
+            case "cbm":
+              totals.cbm += parseFloat(cellValue) || 0;
+              break;
+            case "total_gross_wt":
+              totals.total_gross_wt += parseFloat(cellValue) || 0;
+              break;
+            case "total_net_wt":
+              totals.total_net_wt += parseFloat(cellValue) || 0;
+              break;
+            case "total_case":
+              totals.total_case += parseFloat(cellValue) || 0;
+              break;
+            case "total_mrp":
+              totals.total_mrp += parseFloat(cellValue) || 0;
+              break;
+            default:
+              break;
           }
         }
       });
+    });
 
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "PackingList");
-
-      const wbout = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
-      console.log("Excel data generated, writing to file...");
-
-      return { workbook: wbout, worksheet: ws };
-    } catch (error) {
-      console.error("Excel generation failed:", error);
-      Alert.alert("Error", `Excel file generation failed: ${error.message}`, [{ text: "OK" }]);
-      return null;
-    }
+    return totals;
   };
 
-  const handleShare = async () => {
-    try {
-      console.log("Starting share process...");
-      const excelData = await generateAndSaveExcel();
-      if (!excelData) {
-        console.log("Share aborted: No excel data");
-        return;
-      }
-
-      const { workbook } = excelData;
-      const filePath =
-        Platform.OS === "android"
-          ? `${RNFS.DownloadDirectoryPath}/PackingList_${Date.now()}.xlsx`
-          : `${RNFS.DocumentDirectoryPath}/PackingList_${Date.now()}.xlsx`;
-      console.log("File path:", filePath);
-
-      await RNFS.writeFile(filePath, workbook, "base64");
-      console.log("File written successfully");
-
-      const fileExists = await RNFS.exists(filePath);
-      console.log("File exists:", fileExists);
-      if (!fileExists) {
-        throw new Error("File was not found after writing");
-      }
-
-      console.log("Sharing file:", filePath);
-      await Share.open({
-        url: `file://${filePath}`,
-        title: "Share Packing List Excel",
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      console.log("Share completed");
-    } catch (error) {
-      console.error("Share failed:", error);
-      Alert.alert("Error", `Unable to share Excel file: ${error.message}`, [{ text: "OK" }]);
-    }
-  };
-
-  const handleDownload = async () => {
-    try {
-      console.log("Starting download process...");
-      const granted = await requestAndroidPermissions();
-      console.log("Permissions check completed:", granted);
-
-      if (!granted) {
-        Alert.alert("Permission Denied", "Storage permission is required to save the file.");
-        return;
-      }
-
-      const excelData = await generateAndSaveExcel();
-      if (!excelData) {
-        console.log("Download aborted: No excel data");
-        return;
-      }
-
-      const { workbook } = excelData;
-
-      const filename = `PackingList_${Date.now()}.xlsx`;
-      const filePath =
-        Platform.OS === 'android'
-          ? `${RNFS.DownloadDirectoryPath}/${filename}`
-          : `${RNFS.DocumentDirectoryPath}/${filename}`;
-
-      console.log("File path:", filePath);
-
-      await RNFS.writeFile(filePath, workbook, "base64");
-      console.log("File written successfully");
-
-      const fileExists = await RNFS.exists(filePath);
-      if (!fileExists) {
-        throw new Error("File was not found after writing");
-      }
-
-      // Optional: trigger media scan so file is visible to other apps
-      if (Platform.OS === 'android' && NativeModules?.MediaScannerConnection?.scanFile) {
-        NativeModules.MediaScannerConnection.scanFile(filePath, null);
-      }
-
-      Alert.alert("Download Successful", `Excel file saved:\n${filePath}`, [{ text: "OK" }]);
-
-      // Try opening with FileViewer
-      const viewerPath = `file://${filePath}`;
-      try {
-        await FileViewer.open(viewerPath, {
-          showOpenWithDialog: true,
-          mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        });
-        console.log("File viewer opened");
-      } catch (viewerError) {
-        console.log("File viewer error:", viewerError.message);
-
-        // Fallback: Share the file so user can choose app manually
-        try {
-          await FileViewer.open(viewerPath, {
-            showOpenWithDialog: true,
-            displayName: 'PackingList.xlsx',
-            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          });
-
-          console.log("Fallback share dialog opened");
-        } catch (shareError) {
-          console.log("Could not open file via Share:", shareError.message);
-          Alert.alert("Download Successful", `Excel file saved:\n${filePath}`, [{ text: "OK" }]);
-        }
-      }
-    } catch (error) {
-      console.log("Download error:", error);;
-    }
-  };
   const tableData = generateTableRows();
-  const partNoHeader = headers[0];
-  const restHeaders = headers.slice(1);
+  const totals = calculateTotalsFromTableData();
+
+  const totalsRow = headers.map(({ key }) => {
+    switch (key) {
+      case "cbm": return totals.cbm.toFixed(2);
+      case "total_gross_wt": return totals.total_gross_wt.toFixed(2);
+      case "total_net_wt": return totals.total_net_wt.toFixed(2);
+      case "total_case": return totals.total_case.toFixed(0);
+      case "total_mrp": return totals.total_mrp.toFixed(2);
+      default: return "";
+    }
+  });
+
+  const generateWorkbook = () => {
+    const wsData = [
+      headers.map((h) => h.label),  // header row
+      ...tableData,                 // table rows you see on screen
+    ];
+
+    // Add totals row with a clear marker in the first cell
+    const highlightedTotalsRow = [...totalsRow];
+    highlightedTotalsRow[0] = "TOTALS →";  // make first cell say "TOTALS →" instead of empty
+
+    wsData.push(highlightedTotalsRow);
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "PackingList");
+    return XLSX.write(wb, { type: "binary", bookType: "xlsx" });
+  };
+
+
+  const handleDownloadExcel = async () => {
+    try {
+      const wbout = generateWorkbook();
+      const path = `${RNFS.DownloadDirectoryPath}/PackingList_${Date.now()}.xlsx`;
+      await RNFS.writeFile(path, wbout, "ascii");
+      Alert.alert("Download complete", `File saved to: ${path}`);
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to download Excel file.");
+    }
+  };
+
+  const handleShareExcel = async () => {
+    try {
+      const wbout = generateWorkbook();
+      const path = `${RNFS.CachesDirectoryPath}/PackingList_${Date.now()}.xlsx`;
+      await RNFS.writeFile(path, wbout, "ascii");
+      await Share.open({ url: `file://${path}` });
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to share Excel file.");
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -362,128 +222,76 @@ const DisplayPackingList = () => {
       ) : hasError ? (
         <Text style={styles.noData}>Failed to fetch data</Text>
       ) : (
-        <>
-          <View style={{ flexDirection: "row" }}>
-            <ScrollView style={{ maxHeight: 1000 }}>
-              <Table>
-                <Row
-                  data={[partNoHeader.label.toUpperCase()]}
-                  style={styles.header}
-                  textStyle={styles.headerText}
-                  widthArr={[partNoHeader.width]}
-                />
-                {tableData.map((rowData, index) => (
-                  <TableWrapper key={index} style={[styles.row, { paddingRight: 50 }]}>
-                    <Cell
-                      data={rowData[0]}
-                      textStyle={styles.cellText}
-                      style={[styles.cell, { width: partNoHeader.width, }]}
-                    />
-                  </TableWrapper>
-                ))}
-              </Table>
-            </ScrollView>
-
-            <ScrollView horizontal>
+        <View style={{ flex: 1 }}>
+          <ScrollView horizontal>
+            <View>
+              <Row
+                data={headers.map((h) => h.label.toUpperCase())}
+                style={styles.header}
+                textStyle={styles.headerText}
+                widthArr={headers.map((h) => h.width)}
+              />
               <ScrollView style={{ maxHeight: 1000 }}>
                 <Table>
-                  <Row
-                    data={restHeaders.map((h) => h.label.toUpperCase())}
-                    style={styles.header}
-                    textStyle={styles.headerText}
-                    widthArr={restHeaders.map((h) => h.width)}
-                  />
                   {tableData.map((rowData, index) => (
                     <TableWrapper key={index} style={styles.row}>
-                      {rowData.slice(1).map((cellData, i) => (
+                      {rowData.map((cellData, i) => (
                         <Cell
                           key={i}
-                          data={cellData}
-                          textStyle={styles.cellText}
-                          style={[styles.cell, { width: restHeaders[i].width }]}
+                          data={
+                            headers[i].key === "description" ? (
+                              <Text numberOfLines={1} ellipsizeMode="tail" style={styles.cellText}>
+                                {cellData}
+                              </Text>
+                            ) : (
+                              <Text style={styles.cellText}>{cellData}</Text>
+                            )
+                          }
+                          style={[styles.cell, { width: headers[i].width }]}
                         />
                       ))}
                     </TableWrapper>
                   ))}
+                  <TableWrapper style={[styles.row, { backgroundColor: "#DFF0D8" }]}>
+                    {totalsRow.map((cellData, i) => (
+                      <Cell
+                        key={`total-${i}`}
+                        data={<Text style={[styles.cellText, { fontWeight: "bold" }]}>{cellData}</Text>}
+                        style={[styles.cell, { width: headers[i].width }]}
+                      />
+                    ))}
+                  </TableWrapper>
                 </Table>
               </ScrollView>
-            </ScrollView>
-          </View>
+            </View>
+          </ScrollView>
+        </View>
+      )}
 
-          <View style={{ flexDirection: "row", justifyContent: "space-around", marginTop: 20 }}>
-            <TouchableOpacity style={styles.exportButton} onPress={handleShare}>
-              <Text style={styles.exportText}>📤 Share Excel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.exportButton, { backgroundColor: "#28A745" }]}
-              onPress={handleDownload}
-            >
-              <Text style={styles.exportText}>⬇️ Download Excel</Text>
-            </TouchableOpacity>
-          </View>
-        </>
-      )
-      }
-    </View >
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.button} onPress={handleDownloadExcel}>
+          <Text style={styles.buttonText}>⬇️ Download</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={handleShareExcel}>
+          <Text style={styles.buttonText}>📤 Share</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
 export default DisplayPackingList;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 10,
-    paddingTop: 40,
-    backgroundColor: "#fff",
-  },
-  heading: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 12,
-    textAlign: "center",
-    color: "#333",
-  },
-  header: {
-    height: 50,
-    backgroundColor: "#4CAF50",
-    justifyContent: "center",
-  },
-  headerText: {
-    textAlign: "center",
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 12,
-  },
-  row: {
-    flexDirection: "row",
-    backgroundColor: "#FFF1F0",
-  },
-  cell: {
-    padding: 8,
-    borderWidth: 1,
-    borderColor: "#000",
-  },
-  cellText: {
-    textAlign: "center",
-    fontSize: 11,
-  },
-  exportButton: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  exportText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  noData: {
-    textAlign: "center",
-    marginTop: 20,
-    fontSize: 16,
-    color: "#888",
-  },
+  container: { flex: 1, padding: 10, backgroundColor: "#fff" },
+  heading: { fontSize: 22, fontWeight: "bold", marginBottom: 12, textAlign: "center", color: "#333" },
+  header: { height: 50, backgroundColor: "#4CAF50", justifyContent: "center" },
+  headerText: { textAlign: "center", color: "#fff", fontWeight: "bold", fontSize: 12 },
+  row: { flexDirection: "row", backgroundColor: "#FFF1F0" },
+  cell: { padding: 8, borderWidth: 1, borderColor: "#000" },
+  cellText: { textAlign: "center", fontSize: 11 },
+  noData: { textAlign: "center", marginTop: 20, fontSize: 16, color: "#888" },
+  buttonContainer: { flexDirection: "row", justifyContent: "center", marginTop: 20, marginBottom: 12, gap: 12 },
+  button: { backgroundColor: "#2196F3", paddingVertical: 8, paddingHorizontal: 16, borderRadius: 6 },
+  buttonText: { color: "#fff", fontSize: 14 },
 });

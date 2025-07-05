@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,14 @@ import {
   Alert,
   StyleSheet,
   useWindowDimensions,
+  FlatList
 } from 'react-native';
 import { pick, types } from '@react-native-documents/picker';
 import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
-import API from '../components/API'; // Use your centralized Axios instance
+import API from '../components/API';
 import { useSelector } from 'react-redux';
+import { useFocusEffect } from '@react-navigation/native';
 
 const OrderUpload = ({ navigation }) => {
   const { height: windowHeight } = useWindowDimensions();
@@ -37,6 +39,8 @@ const OrderUpload = ({ navigation }) => {
 
   const handleFilePick = async () => {
     try {
+      setLoading(true); // Show loader at the start of file picking
+
       const res = await pick({
         allowMultiSelection: false,
         type: [types.xlsx, types.xls],
@@ -72,12 +76,17 @@ const OrderUpload = ({ navigation }) => {
     } catch (err) {
       console.error('Error reading file:', err);
       Alert.alert('Error', 'Could not read or parse file');
+    } finally {
+      setLoading(false); // Hide loader after file is processed or on error
     }
   };
 
-  useEffect(() => {
-    handleFilePick();
-  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      handleFilePick();
+    }, [client, marka])
+  );
 
   const handleUpload = async () => {
     if (!selectedFile) {
@@ -86,7 +95,7 @@ const OrderUpload = ({ navigation }) => {
     }
 
     try {
-      setLoading(true);
+      setLoading(true); // Show loader during upload
 
       const formData = new FormData();
       formData.append('file', {
@@ -115,7 +124,7 @@ const OrderUpload = ({ navigation }) => {
       console.error('Upload error:', err.response?.data || err.message);
       Alert.alert('Error', 'Could not upload file');
     } finally {
-      setLoading(false);
+      setLoading(false); // Hide loader after upload finishes
     }
   };
 
@@ -147,6 +156,7 @@ const OrderUpload = ({ navigation }) => {
 
           <ScrollView horizontal>
             <View>
+              {/* Table Header */}
               <View style={styles.tableRowHeader}>
                 {headers.map((header, index) => (
                   <View key={index} style={styles.cellWrapper}>
@@ -154,10 +164,14 @@ const OrderUpload = ({ navigation }) => {
                   </View>
                 ))}
               </View>
-              <ScrollView style={{ maxHeight: windowHeight * 0.5 }}>
-                {rows.map((row, rowIndex) => (
+
+              {/* FlatList for rows */}
+              <FlatList
+                data={rows}
+                keyExtractor={(_, index) => `row-${index}`}
+                style={{ maxHeight: windowHeight * 0.9 }}
+                renderItem={({ item: row, index: rowIndex }) => (
                   <View
-                    key={rowIndex}
                     style={[
                       styles.tableRow,
                       rowIndex % 2 === 0 ? styles.rowEven : styles.rowOdd,
@@ -169,8 +183,8 @@ const OrderUpload = ({ navigation }) => {
                       </View>
                     ))}
                   </View>
-                ))}
-              </ScrollView>
+                )}
+              />
             </View>
           </ScrollView>
 
@@ -191,6 +205,7 @@ const OrderUpload = ({ navigation }) => {
         </View>
       )}
     </View>
+
   );
 };
 

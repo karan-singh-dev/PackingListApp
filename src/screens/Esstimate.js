@@ -1,25 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
   Alert,
   Text,
-  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   Dimensions,
   Platform,
   PermissionsAndroid,
+  FlatList,
+  ScrollView,
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
-import API from '../components/API'; // Use your centralized API instance
-// import Share from 'react-native-share'; // Uncomment if you implement share
+import API from '../components/API';
+import { useFocusEffect } from '@react-navigation/native';
 
 const windowHeight = Dimensions.get('window').height;
 
-const Esstimate = ({ navigation }) => {
+const Estimate = ({ navigation }) => {
   const selectedClient = useSelector((state) => state.clientData.selectedClient);
 
   if (!selectedClient) {
@@ -43,14 +44,11 @@ const Esstimate = ({ navigation }) => {
       const response = await API.get(`/api/asstimate/`, {
         params: { client_name: client, marka },
       });
-
       const data = response.data;
-
       if (!Array.isArray(data) || data.length === 0) {
         Alert.alert('No Data', 'No estimate data found for this client.');
         return;
       }
-
       const extractedHeaders = Object.keys(data[0]);
       const extractedRows = data.map(item =>
         extractedHeaders.map(key => item[key] ?? '')
@@ -76,7 +74,6 @@ const Esstimate = ({ navigation }) => {
 
   const requestAndroidPermissions = async () => {
     if (Platform.OS !== 'android') return true;
-
     try {
       if (Platform.Version >= 33) {
         const results = await PermissionsAndroid.requestMultiple([
@@ -133,11 +130,7 @@ const Esstimate = ({ navigation }) => {
       Alert.alert(
         "Download Successful",
         `Estimate saved to:\n${filePath}`,
-        [
-          // Uncomment if implementing sharing
-          // { text: "Share", onPress: () => shareEstimateFile(filePath) },
-          { text: "OK" },
-        ]
+        [{ text: "OK" }]
       );
     } catch (error) {
       console.error("Download error:", error);
@@ -156,31 +149,37 @@ const Esstimate = ({ navigation }) => {
     });
   };
 
-  /*
-  const shareEstimateFile = async (filePath) => {
-    try {
-      await Share.open({
-        url: `file://${filePath}`,
-        title: 'Share Estimate Excel',
-      });
-    } catch (error) {
-      console.error("Share error:", error);
-    }
-  };
-  */
+  useFocusEffect(
+    useCallback(() => {
+      fetchDataFromAPI();
+      handleCopyFromEstimate();
+    }, [client, marka])
+  );
 
-  useEffect(() => {
-    fetchDataFromAPI();
-    handleCopyFromEstimate();
-  }, []);
+  const renderRow = ({ item, index }) => (
+    <View
+      style={[
+        styles.tableRow,
+        index % 2 === 0 ? styles.rowEven : styles.rowOdd,
+      ]}
+    >
+      {item.map((cell, cellIndex) => (
+        <View key={cellIndex} style={styles.cellWrapper}>
+          <Text style={styles.cellText}>{cell}</Text>
+        </View>
+      ))}
+    </View>
+  );
 
   return (
     <View style={styles.container}>
       {headers.length > 0 && (
         <>
           <Text style={styles.title}>Estimate List</Text>
+
           <ScrollView horizontal>
             <View>
+              {/* Header row */}
               <View style={styles.tableRowHeader}>
                 {headers.map((header, index) => (
                   <View key={index} style={styles.cellWrapper}>
@@ -188,23 +187,15 @@ const Esstimate = ({ navigation }) => {
                   </View>
                 ))}
               </View>
-              <ScrollView style={{ maxHeight: windowHeight }}>
-                {rows.map((row, rowIndex) => (
-                  <View
-                    key={rowIndex}
-                    style={[
-                      styles.tableRow,
-                      rowIndex % 2 === 0 ? styles.rowEven : styles.rowOdd,
-                    ]}
-                  >
-                    {row.map((cell, cellIndex) => (
-                      <View key={cellIndex} style={styles.cellWrapper}>
-                        <Text style={styles.cellText}>{cell}</Text>
-                      </View>
-                    ))}
-                  </View>
-                ))}
-              </ScrollView>
+
+              {/* Rows with FlatList */}
+              <FlatList
+                data={rows}
+                renderItem={renderRow}
+                keyExtractor={(_, index) => index.toString()}
+                style={{ maxHeight: windowHeight }}
+                showsVerticalScrollIndicator={true}
+              />
             </View>
           </ScrollView>
 
@@ -233,6 +224,8 @@ const Esstimate = ({ navigation }) => {
     </View>
   );
 };
+
+export default Estimate;
 
 const styles = StyleSheet.create({
   container: {
@@ -300,5 +293,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-
-export default Esstimate;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,30 +10,78 @@ import {
   RefreshControl,
   TextInput,
   FlatList,
+  Modal,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import API from '../components/API'; // your centralized API instance
+import { setNextCaseNumber, setPackingType } from '../../redux/PackigListSlice'; // make sure the import path is correct
 import { useFocusEffect } from '@react-navigation/native';
-import API from '../components/API'; // use your centralized API instance
 
 const COLUMN_WIDTH = 140;
 
 const RowPackingList = ({ navigation }) => {
+  const dispatch = useDispatch();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [choiceModalVisible, setChoiceModalVisible] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  // console.log('data', data)
   const { height: windowHeight } = useWindowDimensions();
   const selectedClient = useSelector((state) => state.clientData.selectedClient);
+  const PackingType = useSelector((state) => state.packing.PackingType);
+
+  // Fix stale PackingType by always keeping its latest value
+  const PackingTypeRef = useRef(PackingType);
+  PackingTypeRef.current = PackingType;
+
   const client = selectedClient.client_name;
   const marka = selectedClient.marka;
+
+  // console.log('PackingType (from Redux):', PackingType);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      const res = await API.get("api/packing/packing-details/", {
+        params: { client, marka },
+      });
+      if (res.data.length > 0) {
+        if (res.data[res.data.length - 1].cbm === "0.0000") {
+          dispatch(setPackingType("Mix"));
+          dispatch(setNextCaseNumber((res.data[res.data.length - 1].case_no_end).toString()));
+        }
+        else {
+          dispatch(setNextCaseNumber((res.data[res.data.length - 1].case_no_end + 1).toString()));
+        }
+      }
+      else {
+        dispatch(setNextCaseNumber((1).toString()));
+      }
+
+    } catch (error) {
+      console.error("Failed to fetch packing data:", error);
+      setHasError(true);
+    } finally {
+      setLoading(false)
+    }
+  };
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [client, marka])
+
+  );
+
 
   const fetchDataFromAPI = async () => {
     try {
       if (!refreshing) setLoading(true);
       setHasError(false);
       const response = await API.get('/api/packing/packing/', {
-        params: { client, marka }
+        params: { client, marka },
       });
       setData(response.data);
     } catch (error) {
@@ -45,9 +93,15 @@ const RowPackingList = ({ navigation }) => {
     }
   };
 
-  useEffect(() => {
-    fetchDataFromAPI();
-  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+      fetchDataFromAPI();
+      setSearchQuery('')
+    }, [client, marka])
+
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -55,7 +109,29 @@ const RowPackingList = ({ navigation }) => {
   }, []);
 
   const handleStartPacking = (item) => {
-    navigation.navigate('Choice', { item: item.part_no });
+    setSelectedItem(item);
+
+    // console.log('Current PackingType at handleStartPacking call:', PackingTypeRef.current);
+
+    if (PackingTypeRef.current === null) {
+      setChoiceModalVisible(true);
+    } else if (PackingTypeRef.current === 'seperate') {
+      navigation.navigate('SeperatePacking', { item: item.part_no });
+    } else if (PackingTypeRef.current === 'Mix') {
+      navigation.navigate('MixPacking', { item: item.part_no });
+    } else {
+      console.warn('Unknown PackingType:', PackingTypeRef.current);
+    }
+  };
+
+  const handlePackingChoice = (option) => {
+    dispatch(setPackingType(option));
+    setChoiceModalVisible(false);
+    if (option === 'seperate') {
+      navigation.navigate('SeperatePacking', { item: selectedItem.part_no });
+    } else if (option === 'Mix') {
+      navigation.navigate('MixPacking', { item: selectedItem.part_no });
+    }
   };
 
   const filteredData = data.filter((item) =>
@@ -115,11 +191,47 @@ const RowPackingList = ({ navigation }) => {
 
   if (filteredData.length === 0) {
     return (
-      <View style={[styles.centeredContainer, { flex: 1 }]}>
-        <Text style={styles.messageText}>No data available</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={fetchDataFromAPI}>
-          <Text style={styles.retryText}>Retry</Text>
-        </TouchableOpacity>
+      <View style={styles.container}>
+        <View style={styles.headerContainer}>
+          <Text style={styles.title}>📦 Row Packing List</Text>
+        </View>
+        <TextInput
+          style={[styles.searchInput,]}
+          placeholder="Search by Part Number"
+          placeholderTextColor={"#ccc"}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        <Text style={styles.messageText}>No item available</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View>
+            <View style={styles.tableRowHeader}>
+              {headers.map((header, i) => (
+                <View key={i} style={[styles.cellWrapper, { width: COLUMN_WIDTH }]}>
+                  <Text style={styles.headerText}>{header}</Text>
+                </View>
+              ))}
+            </View>
+
+            <FlatList
+              data={filteredData}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={renderItem}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={['#2196F3']}
+                />
+              }
+              initialNumToRender={20}
+              maxToRenderPerBatch={20}
+              windowSize={10}
+              removeClippedSubviews={true}
+              style={{ maxHeight: windowHeight * 0.75 }}
+            />
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -166,6 +278,39 @@ const RowPackingList = ({ navigation }) => {
           />
         </View>
       </ScrollView>
+
+      {/* Packing choice modal */}
+      <Modal visible={choiceModalVisible} transparent animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select your packing type</Text>
+
+            <TouchableOpacity
+              style={styles.optionContainer}
+              onPress={() => handlePackingChoice('seperate')}
+            >
+              <View style={styles.radioCircle} />
+              <Text style={styles.optionText}>Separate</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.optionContainer}
+              onPress={() => handlePackingChoice('Mix')}
+            >
+              <View style={styles.radioCircle} />
+              <Text style={styles.optionText}>Mix</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setChoiceModalVisible(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 };
@@ -272,6 +417,57 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    margin: 20,
+    padding: 25,
+    borderRadius: 10,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  optionContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  radioCircle: {
+    height: 24,
+    width: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#007BFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  cancelButton: {
+    marginTop: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#ccc', // gray button
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+
+  cancelButtonText: {
+    color: '#333',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

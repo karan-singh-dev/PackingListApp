@@ -3,6 +3,7 @@ import {
   View,
   Text,
   ScrollView,
+  FlatList,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
@@ -123,9 +124,7 @@ const AddStock = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.pickButton} onPress={handleFilePick}>
-        <Text style={styles.pickButtonText}>Pick Stock Excel File</Text>
-      </TouchableOpacity>
+
 
       {headers.length > 0 && (
         <>
@@ -140,10 +139,13 @@ const AddStock = ({ navigation }) => {
                   </View>
                 ))}
               </View>
-              <ScrollView style={{ maxHeight: windowHeight * 0.5 }}>
-                {rows.map((row, rowIndex) => (
+
+              <FlatList
+                data={rows}
+                keyExtractor={(_, index) => index.toString()}
+                style={{ maxHeight: windowHeight * 0.9 }}
+                renderItem={({ item: row, index: rowIndex }) => (
                   <View
-                    key={rowIndex}
                     style={[
                       styles.tableRow,
                       rowIndex % 2 === 0 ? styles.rowEven : styles.rowOdd,
@@ -155,20 +157,26 @@ const AddStock = ({ navigation }) => {
                       </View>
                     ))}
                   </View>
-                ))}
-              </ScrollView>
+                )}
+              />
             </View>
           </ScrollView>
 
-          <TouchableOpacity
-            style={styles.uploadButton}
-            onPress={handleUpload}
-            disabled={loading}
-          >
-            <Text style={styles.uploadButtonText}>Upload Stock</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonRow}>
+            <TouchableOpacity style={[styles.pickButton, styles.buttonFlex]} onPress={handleFilePick}>
+              <Text style={styles.pickButtonText}>Pick File</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.uploadButton, styles.buttonFlex]}
+              onPress={handleUpload}
+              disabled={loading}
+            >
+              <Text style={styles.uploadButtonText}>Upload Stock</Text>
+            </TouchableOpacity>
+          </View>
         </>
       )}
+
 
       {loading && (
         <View style={styles.loadingOverlay}>
@@ -258,6 +266,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 999,
   },
+  buttonRow: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginVertical: 16,
+    gap: 12, // requires RN 0.71+; remove if unsupported and use marginRight on left button
+  },
+  buttonFlex: {
+    flex: 1,
+  },
+
 });
 
 export default AddStock;
