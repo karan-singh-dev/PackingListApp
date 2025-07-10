@@ -73,7 +73,7 @@ const MixPacking = () => {
 
   const { nextCaseNumber, packing, stock, loading, estimateList, PackingType } = useSelector((state) => state.packing);
 
-  console.log(nextCaseNumber)
+  console.log(estimateList, '===========estimateList')
 
   const [updates, setupdates] = useState({
     gross_wt: 0,
@@ -129,6 +129,7 @@ const MixPacking = () => {
   useEffect(() => {
     if (form.part_no && estimateList.length) {
       const item = estimateList.find((e) => e.part_no === form.part_no);
+      console.log('itm==============', item)
       if (item) {
         setForm((prev) => ({
           ...prev,
@@ -136,7 +137,9 @@ const MixPacking = () => {
           box_mrp: item.mrp || "",
           description: item.description || "",
           hsn_no: item.hsn || "",
-          gst: parseFloat(item.tax_percent) || "",
+          gst: typeof item.tax_percent === 'string'
+            ? parseFloat(item.tax_percent.replace(/[^\d.]/g, ''))
+            : ""
         }));
       }
     }
@@ -200,47 +203,6 @@ const MixPacking = () => {
   };
 
 
-
-
-
-
-  // const handleBackPress = async () => {
-  //   try {
-  //     const res = await API.get("api/packing/packing-details/", {
-  //       params: { client, marka },
-  //     });
-  //     if (res.data.length == 0 || res.data[res.data.length - 1].cbm !== "0.0000") {
-  //       dispatch(setPackingType(null));
-  //       // console.log(res.data[res.data.length - 1].cbm)
-  //     }
-  //     navigation.navigate("RowPackingList");
-  //   } catch (error) {
-  //     console.error("Failed to fetch packing data:", error);
-
-  //   }
-  // };
-
-  // useFocusEffect(
-  //   React.useCallback(() => {
-  //     const onBackPress = () => {
-  //       handleBackPress();
-  //       return false;
-  //     };
-
-  //     const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
-  //     const unsubscribe = navigation.addListener('beforeRemove', () => {
-
-  //       handleBackPress();
-  //     });
-
-  //     return () => {
-  //       backHandler.remove();
-  //       unsubscribe();
-  //     };
-  //   }, [navigation])
-  // );
-
   const handleNetwt = async () => {
     try {
       const netWtValue = parseFloat(form.net_wt);
@@ -262,7 +224,6 @@ const MixPacking = () => {
         }
       );
       console.log("Net weight posted successfully:", res.data);
-      // Alert.alert("Success", "Net weight saved successfully!");
     } catch (err) {
       console.error("Net weight post error:", err.response?.data || err.message);
       Alert.alert("Error", err.response?.data?.error || "Error posting net weight");
@@ -284,8 +245,6 @@ const MixPacking = () => {
       if (res.status === 200) {
         setupdates({});
         setShowFields(false);
-        // dispatch(setPackingType(null)); 
-        // dispatch(setNextCaseNumber(nextCaseNumber.toString() + 1));
         setForm(initialForm);
 
         navigation.navigate('PackingList');
@@ -317,7 +276,6 @@ const MixPacking = () => {
 
     try {
       await dispatch(submitPackingDetails({ form, passedData, client, marka, PackingType })).unwrap();
-      // dispatch(setNextCaseNumber(nextCaseNumber));
 
       Alert.alert(
         'Success',
@@ -341,9 +299,6 @@ const MixPacking = () => {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
-        {/* <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-          <Icon name="arrow-left" size={28} color="#007AFF" />
-        </TouchableOpacity> */}
         <Text style={styles.title}>📦 Start Mix Packing</Text>
         <View style={styles.card}>
           {!showFields &&
@@ -402,6 +357,7 @@ const MixPacking = () => {
                     placeholder={`Enter ${key.replace(/_/g, " ")}`}
                     editable={!isDisabled}
                     style={[styles.input, isDisabled && styles.disabledInput]}
+                    keyboardType="numeric"
                   />
                 </View>
               );
@@ -417,6 +373,7 @@ const MixPacking = () => {
                     onChangeText={(text) => handleInputChange(key, text)}
                     placeholder={`Enter ${key.replace(/_/g, " ")}`}
                     style={styles.input}
+                    keyboardType="numeric"
                   />
                 </View>
               ))}

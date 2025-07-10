@@ -6,7 +6,6 @@ import AddStock from '../screens/AddStock';
 import Esstimate from '../screens/Esstimate';
 import RowPackingList from '../screens/RowPackingList';
 import OrderUpload from '../screens/OrderUpload';
-import Choice from '../components/Choice';
 import SeperatePacking from '../components/SeperatePacking';
 import MixPacking from '../components/MixPacking';
 import StockList from '../screens/StockList';

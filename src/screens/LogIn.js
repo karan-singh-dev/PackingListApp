@@ -7,6 +7,7 @@ const LogIn = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [localError, setLocalError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const dispatch = useDispatch();
 
     const { loading, error: reduxError } = useSelector((state) => state.login);
@@ -21,8 +22,12 @@ const LogIn = () => {
         }
     };
 
-    const submitLogin = async () => {
 
+
+    const submitLogin = async () => {
+        if (isSubmitting) return;
+
+        setIsSubmitting(true);
         try {
             const resultAction = await dispatch(loginUser({ username, password }));
             if (loginUser.fulfilled.match(resultAction)) {
@@ -32,6 +37,8 @@ const LogIn = () => {
             }
         } catch (error) {
             console.error("Unexpected error:", error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -65,9 +72,9 @@ const LogIn = () => {
                     <Text style={styles.errorText}>{localError || reduxError}</Text>
                 )}
 
-                <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+                <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading || isSubmitting}>
                     <Text style={styles.buttonText}>
-                        {loading ? "Logging in..." : "Login"}
+                        {(loading || isSubmitting) ? "Logging in..." : "Login"}
                     </Text>
                 </TouchableOpacity>
             </View>

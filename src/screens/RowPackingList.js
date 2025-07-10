@@ -13,8 +13,8 @@ import {
   Modal,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import API from '../components/API'; // your centralized API instance
-import { setNextCaseNumber, setPackingType } from '../../redux/PackigListSlice'; // make sure the import path is correct
+import API from '../components/API';
+import { setNextCaseNumber, setPackingType } from '../../redux/PackigListSlice';
 import { useFocusEffect } from '@react-navigation/native';
 
 const COLUMN_WIDTH = 140;
@@ -28,19 +28,15 @@ const RowPackingList = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [choiceModalVisible, setChoiceModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  // console.log('data', data)
   const { height: windowHeight } = useWindowDimensions();
   const selectedClient = useSelector((state) => state.clientData.selectedClient);
   const PackingType = useSelector((state) => state.packing.PackingType);
 
-  // Fix stale PackingType by always keeping its latest value
   const PackingTypeRef = useRef(PackingType);
   PackingTypeRef.current = PackingType;
 
   const client = selectedClient.client_name;
   const marka = selectedClient.marka;
-
-  // console.log('PackingType (from Redux):', PackingType);
 
   const fetchData = async () => {
     try {
@@ -50,10 +46,12 @@ const RowPackingList = ({ navigation }) => {
       });
       if (res.data.length > 0) {
         if (res.data[res.data.length - 1].cbm === "0.0000") {
+          console.log(res.data[res.data.length - 1].cbm)
           dispatch(setPackingType("Mix"));
           dispatch(setNextCaseNumber((res.data[res.data.length - 1].case_no_end).toString()));
         }
         else {
+          dispatch(setPackingType(null));
           dispatch(setNextCaseNumber((res.data[res.data.length - 1].case_no_end + 1).toString()));
         }
       }

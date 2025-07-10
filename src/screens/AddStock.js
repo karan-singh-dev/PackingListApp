@@ -14,8 +14,7 @@ import { pick, types } from '@react-native-documents/picker';
 import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
 import { useSelector } from 'react-redux';
-import API from '../components/API'; // <-- Your centralized axios instance
-
+import API from '../components/API';
 const AddStock = ({ navigation }) => {
   const { height: windowHeight } = useWindowDimensions();
   const [headers, setHeaders] = useState([]);

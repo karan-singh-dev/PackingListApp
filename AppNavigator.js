@@ -10,10 +10,6 @@ import LogIn from './src/screens/LogIn';
 import Splash from './src/screens/Splash';
 import ClientSelection from './src/screens/ClintSelection';
 import AppDrawer from './src/navigation/AppDrawer';
-import PackingFlowStack from './src/navigation/PackingFlowStack';
-import Choice from './src/components/Choice';
-import SeperatePacking from './src/components/SeperatePacking';
-import MixPacking from './src/components/MixPacking';
 
 const Stack = createNativeStackNavigator();
 
@@ -41,7 +37,6 @@ export default function AppNavigator() {
             <>
               <Stack.Screen name="ClintSelection" component={ClientSelection} />
               <Stack.Screen name="AppDrawer" component={AppDrawer} />
-              <Stack.Screen options={{ headerShown: false }} name="Choice" component={Choice} />
             </>
           )}
         </Stack.Navigator>

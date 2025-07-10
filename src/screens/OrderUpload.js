@@ -39,8 +39,7 @@ const OrderUpload = ({ navigation }) => {
 
   const handleFilePick = async () => {
     try {
-      setLoading(true); // Show loader at the start of file picking
-
+      setLoading(true);
       const res = await pick({
         allowMultiSelection: false,
         type: [types.xlsx, types.xls],
@@ -77,7 +76,7 @@ const OrderUpload = ({ navigation }) => {
       console.error('Error reading file:', err);
       Alert.alert('Error', 'Could not read or parse file');
     } finally {
-      setLoading(false); // Hide loader after file is processed or on error
+      setLoading(false);
     }
   };
 
@@ -95,7 +94,7 @@ const OrderUpload = ({ navigation }) => {
     }
 
     try {
-      setLoading(true); // Show loader during upload
+      setLoading(true);
 
       const formData = new FormData();
       formData.append('file', {

@@ -290,7 +290,7 @@ const SeperatePacking = () => {
     try {
       const res = await dispatch(submitPackingDetails({ form, passedData, client, marka })).unwrap();
       dispatch(setNextCaseNumber(parseInt(nextCaseNumber) + 1));
-      Alert.alert("Success", "Packing detail added.");
+      // Alert.alert("Success", "Packing detail added.");
       setForm(initialForm);
       handleNetwt();
       dispatch(setPackingType(null));
@@ -363,6 +363,7 @@ const SeperatePacking = () => {
                   placeholder={`Enter ${key.replace(/_/g, " ")}`}
                   editable={!disable.includes(key)}
                   style={[styles.input, disable.includes(key) && styles.disabledInput]}
+
                 />
               </View>
             );

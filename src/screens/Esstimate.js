@@ -73,39 +73,35 @@ const Estimate = ({ navigation }) => {
   };
 
   const requestAndroidPermissions = async () => {
-    if (Platform.OS !== 'android') return true;
+    if (Platform.OS !== "android") return true;
+
     try {
-      if (Platform.Version >= 33) {
-        const results = await PermissionsAndroid.requestMultiple([
-          PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
-          PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO,
-          PermissionsAndroid.PERMISSIONS.READ_MEDIA_AUDIO,
-        ]);
-        return Object.values(results).every(r => r === PermissionsAndroid.RESULTS.GRANTED);
-      }
-      if (Platform.Version >= 30) {
-        const result = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.MANAGE_EXTERNAL_STORAGE
+      const sdkInt = Platform.Version;
+      if (sdkInt < 30) {
+        const write = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
         );
-        return result === PermissionsAndroid.RESULTS.GRANTED;
+        if (write !== PermissionsAndroid.RESULTS.GRANTED) {
+          console.warn("❌ WRITE_EXTERNAL_STORAGE permission denied");
+          return false;
+        }
       }
-      const read = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE);
-      const write = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE);
-      return read === PermissionsAndroid.RESULTS.GRANTED && write === PermissionsAndroid.RESULTS.GRANTED;
+      return true;
     } catch (err) {
       console.error("Permission error:", err);
-      Alert.alert("Error", "Could not request storage permissions");
       return false;
     }
   };
 
   const downloadEstimateExcel = async (estimateData) => {
+    const granted = await requestAndroidPermissions();
+    if (!granted) {
+      Alert.alert("Permission Denied", "Storage permission is required to save the estimate file.");
+      return;
+    }
+
     try {
-      const granted = await requestAndroidPermissions();
-      if (!granted) {
-        Alert.alert("Permission Denied", "Storage permission is required to save the estimate file.");
-        return;
-      }
+
 
       const wsData = [
         Object.keys(estimateData[0] || {}).map(k => k.toUpperCase()),
@@ -179,7 +175,7 @@ const Estimate = ({ navigation }) => {
 
           <ScrollView horizontal>
             <View>
-              {/* Header row */}
+
               <View style={styles.tableRowHeader}>
                 {headers.map((header, index) => (
                   <View key={index} style={styles.cellWrapper}>
@@ -188,7 +184,7 @@ const Estimate = ({ navigation }) => {
                 ))}
               </View>
 
-              {/* Rows with FlatList */}
+
               <FlatList
                 data={rows}
                 renderItem={renderRow}
