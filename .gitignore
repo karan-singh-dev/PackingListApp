@@ -1,0 +1,55 @@
+# Node modules
+node_modules/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# IDEs and Editors
+*.iml
+.vscode/
+.idea/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+
+# Environment files
+.env
+.env.*  # Matches .env.production, .env.staging, etc.
+
+# Metro / React Native bundler
+.expo/
+.expo-shared/
+# Metro cache (optional, but safe to ignore)
+metro-cache/
+dist/
+
+# Build artifacts (Android)
+android/.gradle/
+android/.idea/
+android/.cxx/
+android/app/.cxx/
+android/app/build/
+android/build/
+android/local.properties
+
+# Build artifacts (iOS)
+ios/Pods/
+ios/build/
+ios/*.xcodeproj/project.xcworkspace/
+ios/*.xcworkspace/
+ios/DerivedData/
+ios/*.pbxuser
+ios/*.mode1v3
+ios/*.mode2v3
+ios/*.perspectivev3
+
+# Lock files (optional)
+package-lock.json
+yarn.lock
+
+# Misc
+*.keystore
+*.jks
