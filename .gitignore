@@ -1,23 +1,35 @@
-# New .gitignore 
 # Node modules
 node_modules/
 
 # OS junk
 .DS_Store
+Thumbs.db
 
-# Build artifacts
+# Build artifacts (Android)
 android/.gradle/
 android/.idea/
 android/.cxx/
-ios/Pods/
-*.log
+android/app/build/
+android/build/
 
-# Metro / React Native cache
+# Build artifacts (iOS)
+ios/Pods/
+ios/build/
+
+# React Native / Metro bundler cache
 *.tmp
 *.swp
+.expo/
+.expo-shared/
+*.log
 
 # Environment files
 .env
-android/
-ios/
+.env.*   # For .env.production, etc.
+
+# Lock files (optional, if using yarn)
 package-lock.json
+yarn.lock
+
+# Misc
+*.iml
