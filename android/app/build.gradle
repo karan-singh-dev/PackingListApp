@@ -86,13 +86,13 @@ android {
         versionName "1.0"
     }
     signingConfigs {
-        debug {
-            storeFile file('debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
-        }
+    debug {
+        storeFile file(System.getProperty("user.home") + "/.android/debug.keystore")
+        storePassword 'android'
+        keyAlias 'androiddebugkey'
+        keyPassword 'android'
     }
+}
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
