@@ -12,6 +12,7 @@ import {
   FlatList,
   Modal,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useDispatch, useSelector } from 'react-redux';
 import API from '../components/API';
 import { setNextCaseNumber, setPackingType } from '../../redux/PackigListSlice';
@@ -236,9 +237,14 @@ const RowPackingList = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.title}>📦 Row Packing List</Text>
-      </View>
+       <View style={styles.headerContainer}>
+              <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
+                <Icon name="menu" size={30} color="#000" />
+              </TouchableOpacity>
+              <View style={{flex:1}}>
+                <Text style={styles.heading}> Row Packing Details</Text>
+              </View>
+            </View>
       <TextInput
         style={styles.searchInput}
         placeholder="Search by Part Number"
@@ -317,14 +323,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    paddingTop: 50,
     backgroundColor: '#fff',
   },
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
+  heading: { fontSize: 22, fontWeight: "bold", textAlign: "center", color: "#333" },
+  headerContainer: {marginBottom:30,flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', paddingTop: 20,  backgroundColor: '#fff'},
+  menuButton: { marginLeft:15},
   title: {
     fontSize: 22,
     fontWeight: '700',

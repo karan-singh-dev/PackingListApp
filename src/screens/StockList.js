@@ -9,8 +9,10 @@ import {
   FlatList,
   TextInput,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import API from '../components/API'; // Use your centralized API instance
 
 const deviceHeight = Dimensions.get('window').height;
@@ -78,8 +80,15 @@ const StockList = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Stock List</Text>
 
+      <View style={styles.headerContainer}>
+        <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
+          <Icon name="menu" size={30} color="#000" />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.heading}>📋 Stock List</Text>
+        </View>
+      </View>
       <TextInput
         placeholder="Search by Part Number or Description"
         placeholderTextColor={"#ccc"}
@@ -120,12 +129,9 @@ const styles = StyleSheet.create({
     paddingTop: 40,
     backgroundColor: '#fff',
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 10,
-    alignSelf: 'center',
-  },
+  headerContainer: { marginBottom: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', paddingTop: 20, backgroundColor: '#fff' },
+  menuButton: { marginLeft: 15 },
+  heading: { fontSize: 22, fontWeight: "bold", textAlign: "center", color: "#333" },
   searchInput: {
     height: 40,
     borderWidth: 1,

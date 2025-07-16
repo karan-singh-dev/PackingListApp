@@ -2,12 +2,10 @@ import XLSX from "xlsx";
 import RNFS from "react-native-fs";
 import Share from "react-native-share";
 import { Platform } from "react-native";
-// import FileProvider from "react-native-file-provider"; // Uncomment if using file provider
 
 export const useExcelExporter = () => {
   const generateExcelFile = async ({ data, headers, fileName, sheetName }) => {
     try {
-      // Step 1: Group data by case_no_start - case_no_end
       const grouped = {};
       data.forEach((item) => {
         const key = `${item.case_no_start}-${item.case_no_end}`;
@@ -15,7 +13,6 @@ export const useExcelExporter = () => {
         grouped[key].push(item);
       });
 
-      // Step 2: Flatten grouped data into sheet format
       const sharedFields = [
         "case_no_start",
         "case_no_end",
@@ -28,7 +25,18 @@ export const useExcelExporter = () => {
         "cbm",
       ];
 
-      const sheetData = [headers.map((h) => h.label)];
+      // Styled header row
+      const sheetData = [
+        headers.map((h) => ({
+          v: h.label,
+          s: {
+            fill: { fgColor: { rgb: "FF0000" } }, 
+            font: { bold: true, color: { rgb: "FF0000" } }, 
+            alignment: { horizontal: "center", vertical: "center" },
+          },
+        })),
+      ];
+
       const merges = [];
       let currentRow = 1;
 
@@ -60,26 +68,23 @@ export const useExcelExporter = () => {
         });
       }
 
-      // Step 3: Create worksheet with merges
       const ws = XLSX.utils.aoa_to_sheet(sheetData);
       ws["!merges"] = merges;
 
-      // Set column widths (optional, for better readability)
+      ws["!freeze"] = { xSplit: 0, ySplit: 1 };
+
       const colWidths = headers.map((h) => ({ wpx: h.width || 100 }));
       ws["!cols"] = colWidths;
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, sheetName || "Sheet1");
-
-      // Step 4: Write workbook as base64
+4
       const wbout = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
 
-      // Step 5: Save to Download directory
       const path = `${RNFS.DownloadDirectoryPath}/${fileName}.xlsx`;
       console.log("Saving to path:", path);
       await RNFS.writeFile(path, wbout, "base64");
 
-      // Step 6: Verify file existence and size
       const exists = await RNFS.exists(path);
       console.log(`File exists: ${exists}`);
       if (!exists) {
@@ -100,7 +105,6 @@ export const useExcelExporter = () => {
           console.log("Media Store updated for:", path);
         } catch (scanError) {
           console.error("Failed to update Media Store:", scanError);
-          // Retry after a short delay
           await new Promise((resolve) => setTimeout(resolve, 1000));
           try {
             await RNFS.scanFile(path);

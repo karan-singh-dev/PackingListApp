@@ -12,6 +12,7 @@ import SeperatePacking from '../components/SeperatePacking';
 import MixPacking from '../components/MixPacking';
 import StockList from '../screens/StockList';
 import ClientSelection from '../screens/ClintSelection';
+import Estimate from '../screens/Esstimate';
 
 const Drawer = createDrawerNavigator();
 
@@ -42,6 +43,7 @@ export default function AppDrawer() {
                 name="OrderUpload"
                 component={OrderUpload}
                 options={{
+                     headerShown: false,
                     drawerLabel: 'Order Upload',
                     drawerIcon: ({ color, size }) => (
                         <Icon name="upload" color={color} size={size} />
@@ -49,9 +51,10 @@ export default function AppDrawer() {
                 }}
             />
             <Drawer.Screen
-                name="Esstimate"
-                component={Esstimate}
+                name="Estimate"
+                component={Estimate}
                 options={{
+                     headerShown: false,
                     drawerLabel: 'Estimate',
                     drawerIcon: ({ color, size }) => (
                         <Icon name="file-document-outline" color={color} size={size} />
@@ -62,6 +65,7 @@ export default function AppDrawer() {
                 name="AddStock"
                 component={AddStock}
                 options={{
+                    headerShown: false,
                     drawerLabel: 'Add Stock',
                     drawerIcon: ({ color, size }) => (
                         <Icon name="plus-box" color={color} size={size} />
@@ -72,6 +76,7 @@ export default function AppDrawer() {
                 name="StockList"
                 component={StockList}
                 options={{
+                    headerShown: false,
                     drawerLabel: 'Stock List',
                     drawerIcon: ({ color, size }) => (
                         <Icon name="format-list-bulleted" color={color} size={size} />
@@ -82,6 +87,7 @@ export default function AppDrawer() {
                 name="RowPackingList"
                 component={RowPackingList}
                 options={{
+                     headerShown: false,
                     drawerLabel: 'Row Packing List',
                     drawerIcon: ({ color, size }) => (
                         <Icon name="view-grid" color={color} size={size} />
@@ -92,6 +98,7 @@ export default function AppDrawer() {
                 name="PackingList"
                 component={DisplayPackingList}
                 options={{
+                    headerShown: false,
                     drawerLabel: 'Packing List',
                     drawerIcon: ({ color, size }) => (
                         <Icon name="clipboard-list-outline" color={color} size={size} />

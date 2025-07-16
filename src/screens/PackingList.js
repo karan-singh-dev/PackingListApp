@@ -1,7 +1,8 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   ActivityIndicator,
   ScrollView,
@@ -9,10 +10,11 @@ import {
   Alert,
   FlatList,
   PermissionsAndroid,
-  Platform
+  Platform,
 } from "react-native";
 import { useSelector } from "react-redux";
-import { useFocusEffect } from "@react-navigation/native";
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import API from "../components/API";
 import { useExcelExporter } from "../components/useExcelExporter";
 
@@ -20,9 +22,12 @@ const DisplayPackingList = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageInput, setPageInput] = useState(""); // 👈 New state for jump-to-page
+  const navigation = useNavigation();
+  const itemsPerPage = 30;
 
   const { generateExcelFile, shareExcelFile } = useExcelExporter();
-
   const selectedClient = useSelector((state) => state.clientData.selectedClient);
   const client = selectedClient.client_name;
   const marka = selectedClient.marka;
@@ -103,9 +108,7 @@ const DisplayPackingList = () => {
       let prevSharedValues = {};
       group.forEach((item, idx) => {
         const row = headers.map(({ key }) => {
-          if (key === "sr_no") {
-            return serial++;
-          }
+          if (key === "sr_no") return serial++;
           if (sharedFields.includes(key)) {
             const shouldDisplay = idx === 0 || item[key] !== prevSharedValues[key];
             prevSharedValues[key] = item[key];
@@ -120,7 +123,7 @@ const DisplayPackingList = () => {
     return allRows;
   };
 
-  const tableData = generateTableRows();
+  const tableData = useMemo(() => generateTableRows(), [data]);
 
   const calculateTotalsFromTableData = () => {
     const totals = {
@@ -159,19 +162,21 @@ const DisplayPackingList = () => {
     }
   });
 
+  const totalPages = Math.ceil((tableData.length + 1) / itemsPerPage);
+  const paginatedData = [...tableData, totalsRow].slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   const requestAndroidPermissions = async () => {
     if (Platform.OS !== "android") return true;
-
     try {
       const sdkInt = Platform.Version;
       if (sdkInt < 30) {
         const write = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
         );
-        if (write !== PermissionsAndroid.RESULTS.GRANTED) {
-          console.warn("❌WRITE_EXTERNAL_STORAGE permission denied");
-          return false;
-        }
+        if (write !== PermissionsAndroid.RESULTS.GRANTED) return false;
       }
       return true;
     } catch (err) {
@@ -180,25 +185,52 @@ const DisplayPackingList = () => {
     }
   };
 
-
-
-
   const handleDownloadExcel = async () => {
+    // Convert raw data into rows based on headers
+    const processedData = data.map((item, index) => {
+      const row = {};
+      headers.forEach(({ key }) => {
+        row[key] = key === "sr_no" ? index + 1 : item[key];
+      });
+      return row;
+    });
+
+    // Add totals row at the end
+    const totalsRowObject = {};
+    headers.forEach(({ key }) => {
+      switch (key) {
+        case "cbm":
+          totalsRowObject[key] = totals.cbm.toFixed(2);
+          break;
+        case "total_gross_wt":
+          totalsRowObject[key] = totals.total_gross_wt.toFixed(2);
+          break;
+        case "total_net_wt":
+          totalsRowObject[key] = totals.total_net_wt.toFixed(2);
+          break;
+        case "total_case":
+          totalsRowObject[key] = totals.total_case.toFixed(0);
+          break;
+        case "total_mrp":
+          totalsRowObject[key] = totals.total_mrp.toFixed(2);
+          break;
+        default:
+          totalsRowObject[key] = ""; // empty for non-total columns
+      }
+    });
+    processedData.push(totalsRowObject);
+
     const granted = await requestAndroidPermissions();
-    if (!granted) {
-      Alert.alert("Permission Denied", "Storage permission is required to save the file.");
-      return;
-    }
+    if (!granted) return Alert.alert("Permission Denied", "Storage permission is required to save the file.");
 
     const filePath = await generateExcelFile({
-      data,
+      data: processedData,
       headers,
       fileName: `PackingList_${Date.now()}`,
       sheetName: "PackingList",
     });
 
     if (filePath) {
-      console.log("Download complete", `File saved to: ${filePath}`);
       Alert.alert("Download Complete", `File saved to: ${filePath}`);
     } else {
       Alert.alert("Error", "Failed to download Excel file.");
@@ -206,14 +238,45 @@ const DisplayPackingList = () => {
   };
 
   const handleShareExcel = async () => {
+    // Convert raw data into rows based on headers
+const processedData = data.map((item, index) => {
+  const row = {};
+  headers.forEach(({ key }) => {
+    row[key] = key === "sr_no" ? index + 1 : item[key];
+  });
+  return row;
+});
+
+
+const totalsRowObject = {};
+headers.forEach(({ key }) => {
+  switch (key) {
+    case "cbm":
+      totalsRowObject[key] = totals.cbm.toFixed(2);
+      break;
+    case "total_gross_wt":
+      totalsRowObject[key] = totals.total_gross_wt.toFixed(2);
+      break;
+    case "total_net_wt":
+      totalsRowObject[key] = totals.total_net_wt.toFixed(2);
+      break;
+    case "total_case":
+      totalsRowObject[key] = totals.total_case.toFixed(0);
+      break;
+    case "total_mrp":
+      totalsRowObject[key] = totals.total_mrp.toFixed(2);
+      break;
+    default:
+      totalsRowObject[key] = ""; 
+  }
+});
+processedData.push(totalsRowObject);
+
     const granted = await requestAndroidPermissions();
-    if (!granted) {
-      Alert.alert("Permission Denied", "Storage permission is required to share the file.");
-      return;
-    }
+    if (!granted) return Alert.alert("Permission Denied", "Storage permission is required to share the file.");
 
     const filePath = await generateExcelFile({
-      data,
+      data: processedData,
       headers,
       fileName: `PackingList_${Date.now()}`,
       sheetName: "PackingList",
@@ -229,7 +292,6 @@ const DisplayPackingList = () => {
 
   const renderRow = ({ item, index }) => {
     const isTotalsRow = index === tableData.length;
-
     return (
       <View
         style={[
@@ -255,7 +317,15 @@ const DisplayPackingList = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>📋 Packing Details</Text>
+      <View style={styles.headerContainer}>
+        <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
+          <Icon name="menu" size={30} color="#000" />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.heading}>📋 Packing Details</Text>
+        </View>
+      </View>
+
       {loading ? (
         <ActivityIndicator size="large" color="#2196F3" />
       ) : hasError ? (
@@ -271,15 +341,64 @@ const DisplayPackingList = () => {
               ))}
             </View>
             <FlatList
-              data={[...tableData, totalsRow]}
+              data={paginatedData}
               renderItem={renderRow}
               keyExtractor={(_, idx) => String(idx)}
-              initialNumToRender={30}
+              initialNumToRender={20}
               maxToRenderPerBatch={60}
               windowSize={21}
             />
           </View>
         </ScrollView>
+      )}
+
+      {!loading && !hasError && (
+        <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 10, gap: 10, flexWrap: 'wrap' }}>
+          <TouchableOpacity
+            style={[styles.button, currentPage === 1 && { backgroundColor: "#aaa" }]}
+            disabled={currentPage === 1}
+            onPress={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          >
+            <Text style={styles.buttonText}>⬅️ Prev</Text>
+          </TouchableOpacity>
+
+          <Text style={{ alignSelf: "center", fontSize: 14, color: "#333" }}>
+            Page {currentPage} of {totalPages}
+          </Text>
+
+          <TouchableOpacity
+            style={[styles.button, currentPage === totalPages && { backgroundColor: "#aaa" }]}
+            disabled={currentPage === totalPages}
+            onPress={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+          >
+            <Text style={styles.buttonText}>Next ➡️</Text>
+          </TouchableOpacity>
+
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}>
+            <Text>Go to page</Text>
+            <TextInput
+              style={[styles.input, { width: 60, textAlign: "center" }]}
+              keyboardType="numeric"
+              placeholder="Page"
+              value={pageInput}
+              onChangeText={setPageInput}
+            />
+            <TouchableOpacity
+              style={[styles.button, { marginLeft: 8, paddingHorizontal: 12 }]}
+              onPress={() => {
+                const pageNum = parseInt(pageInput);
+                if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
+                  setCurrentPage(pageNum);
+                  setPageInput("");
+                } else {
+                  Alert.alert("Invalid Page", `Please enter a number between 1 and ${totalPages}`);
+                }
+              }}
+            >
+              <Text style={styles.buttonText}>Go</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
 
       <View style={styles.buttonContainer}>
@@ -298,7 +417,9 @@ export default DisplayPackingList;
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 10, backgroundColor: "#fff" },
-  heading: { fontSize: 22, fontWeight: "bold", marginBottom: 12, textAlign: "center", color: "#333" },
+  headerContainer: { marginBottom: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', paddingTop: 20, backgroundColor: '#fff' },
+  menuButton: { marginLeft: 15 },
+  heading: { fontSize: 22, fontWeight: "bold", textAlign: "center", color: "#333" },
   header: { backgroundColor: "#4CAF50" },
   headerText: { fontWeight: "bold", textAlign: "center", fontSize: 12, color: "#fff", padding: 6 },
   row: { flexDirection: "row", borderBottomWidth: 0.5, borderColor: "#ccc", height: 30, alignItems: "center" },
@@ -307,5 +428,15 @@ const styles = StyleSheet.create({
   buttonContainer: { flexDirection: "row", justifyContent: "center", marginTop: 20, marginBottom: 12, gap: 12 },
   button: { backgroundColor: "#2196F3", paddingVertical: 8, paddingHorizontal: 16, borderRadius: 6 },
   buttonText: { color: "#fff", fontSize: 14 },
-  totalRowBackground: { backgroundColor: "#ffe0b2", },
+  totalRowBackground: { backgroundColor: "#ffe0b2" },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    fontSize: 14,
+    color: "#333",
+    backgroundColor: "#fff",
+  },
 });

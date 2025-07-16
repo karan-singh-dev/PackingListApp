@@ -74,6 +74,7 @@ const SeperatePacking = () => {
   const [form, setForm] = useState(initialForm);
   const notShow = HIDDEN_FIELDS;
   const disable = [
+    "case_no_start",
     "case_no_end",
     "total_box",
     "cbm",
@@ -109,13 +110,12 @@ const SeperatePacking = () => {
     const fetchData = async () => {
       try {
         const res = await API.get('api/packing/net-weight/', {
-          params: { part_no: form.part_no },  // <- use `params` for GET
+          params: { part_no: form.part_no }, 
         });
         setNetWt(res.data);
         console.log(res.data, 'ok');
       } catch (err) {
         console.log(err.response?.data || err.message, '===================');
-        // Optional: Alert.alert(err.response?.data?.error || "Error fetching data");
       }
     };
     if (form.part_no) {
@@ -287,7 +287,14 @@ const SeperatePacking = () => {
 
 
   const handleSubmit = async () => {
-    try {
+    console.log('total pcking qty',form.total_packing_qty);
+    
+    if (!form.total_packing_qty >= form.packed_in_plastic_bag){
+         Alert.alert('Totalpacking qty can not less then packed in plastic bag')
+    }else if(!form.total_gross_wt >= form.total_net_wt){
+         Alert.alert('gross wt is less then net wt please check')
+    }else{
+ try {
       const res = await dispatch(submitPackingDetails({ form, passedData, client, marka })).unwrap();
       dispatch(setNextCaseNumber(parseInt(nextCaseNumber) + 1));
       // Alert.alert("Success", "Packing detail added.");
@@ -299,6 +306,8 @@ const SeperatePacking = () => {
       console.error("Packing submit error:", error);
       Alert.alert("Error", "Something went wrong.");
     }
+    }
+   
   };
 
   return (

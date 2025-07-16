@@ -12,6 +12,7 @@ import {
   FlatList,
   ScrollView,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSelector } from 'react-redux';
 import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
@@ -171,8 +172,14 @@ const Estimate = ({ navigation }) => {
     <View style={styles.container}>
       {headers.length > 0 && (
         <>
-          <Text style={styles.title}>Estimate List</Text>
-
+          <View style={styles.headerContainer}>
+            <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
+              <Icon name="menu" size={30} color="#000" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.heading}>Estimate List</Text>
+            </View>
+          </View>
           <ScrollView horizontal>
             <View>
 
@@ -228,13 +235,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 20,
-    marginBottom: 10,
-    alignSelf: 'center',
-  },
+  headerContainer: { marginBottom: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', paddingTop: 20, backgroundColor: '#fff' },
+  menuButton: { marginLeft: 15 },
+  heading: { fontSize: 22, fontWeight: "bold", textAlign: "center", color: "#333" },
+  header: { backgroundColor: "#4CAF50" },
   cellWrapper: {
     width: 100,
     padding: 10,

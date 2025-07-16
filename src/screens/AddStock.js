@@ -2,21 +2,21 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
   StyleSheet,
-  useWindowDimensions,
+  ScrollView,
 } from 'react-native';
 import { pick, types } from '@react-native-documents/picker';
 import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSelector } from 'react-redux';
 import API from '../components/API';
+
 const AddStock = ({ navigation }) => {
-  const { height: windowHeight } = useWindowDimensions();
   const [headers, setHeaders] = useState([]);
   const [rows, setRows] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -33,26 +33,19 @@ const AddStock = ({ navigation }) => {
         type: [types.xlsx, types.xls],
       });
 
-      if (!res || !res[0]) {
-        Alert.alert('No file selected');
-        return;
-      }
+      if (!res || !res[0]) return Alert.alert('No file selected');
 
       const file = res[0];
       setSelectedFile(file);
 
       const filePath = file.uri.replace('file://', '');
       const b64 = await RNFS.readFile(filePath, 'base64');
-
       const wb = XLSX.read(b64, { type: 'base64' });
       const wsname = wb.SheetNames[0];
       const ws = wb.Sheets[wsname];
       const data = XLSX.utils.sheet_to_json(ws);
 
-      if (data.length === 0) {
-        Alert.alert('No data found in file');
-        return;
-      }
+      if (data.length === 0) return Alert.alert('No data found in file');
 
       const headerRow = Object.keys(data[0]);
       const rowData = data.map(obj => headerRow.map(key => obj[key] ?? ''));
@@ -66,20 +59,10 @@ const AddStock = ({ navigation }) => {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) {
-      Alert.alert('Select file first');
-      return;
-    }
-
-    if (!API.defaults.baseURL) {
-      Alert.alert("Configuration Error", "API endpoint is not configured properly.");
-      return;
-    }
+    if (!selectedFile) return Alert.alert('Select file first');
 
     try {
       setLoading(true);
-      console.log("Stock upload start");
-
       const formData = new FormData();
       formData.append('file', {
         uri: selectedFile.uri,
@@ -89,94 +72,89 @@ const AddStock = ({ navigation }) => {
       formData.append('client_name', client);
       formData.append('marka', marka);
 
-      const uploadResponse = await API.post('/api/packing/stock/upload/', formData, {
+      await API.post('/api/packing/stock/upload/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      console.log('Upload response:', uploadResponse?.data);
 
-      Alert.alert("Success", "Stock Excel uploaded successfully");
+      await API.post('/api/packing/packing/sync-stock/');
 
-      try {
-        await API.post('/api/packing/packing/sync-stock/');
-        Alert.alert("Success", "Stock quantities synced.");
-        setHeaders([]);
-        setRows([]);
-        setSelectedFile(null);
-        navigation.navigate("StockList");
-      } catch (syncError) {
-        console.error("Sync error:", syncError);
-        Alert.alert("Sync Failed", syncError.response?.data?.error || syncError.message);
-      }
-    } catch (uploadError) {
-      console.error("Upload error:", uploadError);
-      Alert.alert(
-        "Upload Failed",
-        uploadError.response?.data?.error ||
-        uploadError.response?.data?.detail ||
-        uploadError.message ||
-        "An unknown error occurred during upload."
-      );
+      Alert.alert('Success', 'Stock uploaded and synced');
+      setHeaders([]);
+      setRows([]);
+      setSelectedFile(null);
+      navigation.navigate('StockList');
+    } catch (err) {
+      console.error('Upload error:', err);
+      Alert.alert('Upload Failed', err.response?.data?.error || err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  const renderRow = ({ item, index }) => (
+    <View style={[styles.tableRow, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}>
+      {item.map((cell, i) => (
+        <View key={i} style={styles.cellWrapper}>
+          <Text style={styles.cellText}>{cell}</Text>
+        </View>
+      ))}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.headerContainer}>
+        <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
+          <Icon name="menu" size={30} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.heading}>Upload Stock</Text>
+      </View>
 
-
-      {headers.length > 0 && (
-        <>
-          <Text style={styles.title}>STOCK LIST</Text>
-
-          <ScrollView horizontal>
-            <View>
-              <View style={styles.tableRowHeader}>
-                {headers.map((header, index) => (
-                  <View key={index} style={styles.cellWrapper}>
-                    <Text style={styles.headerText}>{header}</Text>
-                  </View>
-                ))}
-              </View>
-
-              <FlatList
-                data={rows}
-                keyExtractor={(_, index) => index.toString()}
-                style={{ maxHeight: windowHeight * 0.9 }}
-                renderItem={({ item: row, index: rowIndex }) => (
-                  <View
-                    style={[
-                      styles.tableRow,
-                      rowIndex % 2 === 0 ? styles.rowEven : styles.rowOdd,
-                    ]}
-                  >
-                    {row.map((cell, cellIndex) => (
-                      <View key={cellIndex} style={styles.cellWrapper}>
-                        <Text style={styles.cellText}>{cell}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              />
-            </View>
-          </ScrollView>
-
-          <View style={styles.buttonRow}>
-            <TouchableOpacity style={[styles.pickButton, styles.buttonFlex]} onPress={handleFilePick}>
-              <Text style={styles.pickButtonText}>Pick File</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.uploadButton, styles.buttonFlex]}
-              onPress={handleUpload}
-              disabled={loading}
-            >
-              <Text style={styles.uploadButtonText}>Upload Stock</Text>
-            </TouchableOpacity>
-          </View>
-        </>
+      {/* Center message */}
+      {!selectedFile && (
+        <View style={styles.centerMessageContainer}>
+          <Text style={styles.subtext}>Pick a file to update stock</Text>
+        </View>
       )}
 
+      {/* Table */}
+      {headers.length > 0 && (
+        <ScrollView horizontal>
+          <View>
+            <View style={styles.tableRowHeader}>
+              {headers.map((header, index) => (
+                <View key={index} style={styles.cellWrapper}>
+                  <Text style={styles.headerText}>{header}</Text>
+                </View>
+              ))}
+            </View>
 
+            <FlatList
+              data={rows}
+              keyExtractor={(_, index) => index.toString()}
+              renderItem={renderRow}
+              scrollEnabled={true}
+              contentContainerStyle={{ paddingBottom: 100 }}
+            />
+          </View>
+        </ScrollView>
+      )}
+
+      {/* Bottom bar */}
+      <View style={styles.bottomBar}>
+        <TouchableOpacity style={styles.pickButton} onPress={handleFilePick}>
+          <Text style={styles.pickButtonText}>Pick File</Text>
+        </TouchableOpacity>
+
+        {headers.length > 0 && (
+          <TouchableOpacity style={styles.uploadButton} onPress={handleUpload} disabled={loading}>
+            <Text style={styles.uploadButtonText}>Upload Stock</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Loading overlay */}
       {loading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#fff" />
@@ -188,27 +166,31 @@ const AddStock = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  pickButton: {
-    margin: 16,
-    backgroundColor: '#28a745',
-    padding: 12,
-    borderRadius: 8,
+  container: { flex: 1, backgroundColor: '#fff' },
+  headerContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingTop: 20,
+    paddingHorizontal: 10,
+    marginBottom: 10,
   },
-  pickButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginVertical: 20,
+  menuButton: { marginRight: 10 },
+  heading: {
+    fontSize: 22,
+    fontWeight: 'bold',
     textAlign: 'center',
+    flex: 1,
+    color: '#333',
+  },
+  subtext: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
+  centerMessageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   tableRowHeader: {
     flexDirection: 'row',
@@ -225,12 +207,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  rowEven: {
-    backgroundColor: '#f9f9f9',
-  },
-  rowOdd: {
-    backgroundColor: '#e6f2ff',
-  },
+  rowEven: { backgroundColor: '#f9f9f9' },
+  rowOdd: { backgroundColor: '#e6f2ff' },
   headerText: {
     fontWeight: 'bold',
     color: '#fff',
@@ -242,12 +220,38 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'center',
   },
+  bottomBar: {
+    flexDirection: 'row',
+    padding: 16,
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderColor: '#eee',
+    backgroundColor: '#fff',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  pickButton: {
+    backgroundColor: '#28a745',
+    padding: 12,
+    borderRadius: 8,
+    flex: 1,
+    marginRight: 8,
+    alignItems: 'center',
+  },
   uploadButton: {
-    margin: 16,
     backgroundColor: '#007bff',
     padding: 12,
     borderRadius: 8,
+    flex: 1,
+    marginLeft: 8,
     alignItems: 'center',
+  },
+  pickButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   uploadButtonText: {
     color: '#fff',
@@ -265,16 +269,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 999,
   },
-  buttonRow: {
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    marginVertical: 16,
-    gap: 12, // requires RN 0.71+; remove if unsupported and use marginRight on left button
-  },
-  buttonFlex: {
-    flex: 1,
-  },
-
 });
 
 export default AddStock;

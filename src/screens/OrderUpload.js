@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
 import API from '../components/API';
 import { useSelector } from 'react-redux';
-import { useFocusEffect } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const OrderUpload = ({ navigation }) => {
   const { height: windowHeight } = useWindowDimensions();
@@ -38,54 +38,46 @@ const OrderUpload = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
 
   const handleFilePick = async () => {
-    try {
-      setLoading(true);
-      const res = await pick({
-        allowMultiSelection: false,
-        type: [types.xlsx, types.xls],
-      });
+  try {
+    setLoading(true);
+    const res = await pick({
+      allowMultiSelection: false,
+      type: [types.xlsx, types.xls],
+    });
 
-      if (!res || !res[0]) {
-        Alert.alert('No file selected');
-        return;
-      }
-
-      const file = res[0];
-      setSelectedFile(file);
-      const filePath = file.uri.replace('file://', '');
-      const b64 = await RNFS.readFile(filePath, 'base64');
-
-      const wb = XLSX.read(b64, { type: 'base64' });
-      const wsname = wb.SheetNames[0];
-      const ws = wb.Sheets[wsname];
-      const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
-
-      if (data.length === 0) {
-        Alert.alert('No data found in file');
-        return;
-      }
-
-      console.log(data.length, 'rows read from excel');
-
-      const headerRow = Object.keys(data[0]);
-      const rowData = data.map(obj => headerRow.map(key => obj[key] ?? ''));
-
-      setHeaders(headerRow);
-      setRows(rowData);
-    } catch (err) {
-      console.error('Error reading file:', err);
-      Alert.alert('Error', 'Could not read or parse file');
-    } finally {
-      setLoading(false);
+    if (!res || !res[0]) {
+      Alert.alert('No file selected');
+      return;
     }
-  };
 
+    const file = res[0];
+    setSelectedFile(file);
+    const filePath = file.uri.replace('file://', '');
+    const b64 = await RNFS.readFile(filePath, 'base64');
 
-  useFocusEffect(
-    useCallback(() => {
-      handleFilePick();
-    }, [client, marka])
-  );
+    const wb = XLSX.read(b64, { type: 'base64' });
+    const wsname = wb.SheetNames[0];
+    const ws = wb.Sheets[wsname];
+    const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    if (data.length === 0) {
+      Alert.alert('No data found in file');
+      return;
+    }
+
+    const headerRow = Object.keys(data[0]);
+    const rowData = data.map(obj => headerRow.map(key => obj[key] ?? ''));
+
+    setHeaders(headerRow);
+    setRows(rowData);
+  } catch (err) {
+    console.error('Error reading file:', err);
+    Alert.alert('Error', 'Could not read or parse file');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleUpload = async () => {
     if (!selectedFile) {
@@ -110,7 +102,6 @@ const OrderUpload = ({ navigation }) => {
       });
 
       if (response.status === 200) {
-        console.log('Upload success:', response.data);
         Alert.alert('Success', 'File uploaded successfully!');
         await generateEstimate();
         setHeaders([]);
@@ -123,7 +114,7 @@ const OrderUpload = ({ navigation }) => {
       console.error('Upload error:', err.response?.data || err.message);
       Alert.alert('Error', 'Could not upload file');
     } finally {
-      setLoading(false); // Hide loader after upload finishes
+      setLoading(false);
     }
   };
 
@@ -135,10 +126,8 @@ const OrderUpload = ({ navigation }) => {
       });
 
       if (res.status === 200) {
-        console.log(res.data.message || 'Items merged successfully');
         navigation.navigate('Esstimate');
       } else {
-        console.log('Failed to generate estimate');
         Alert.alert('Error', 'Failed to generate estimate');
       }
     } catch (error) {
@@ -149,13 +138,28 @@ const OrderUpload = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.headerContainer}>
+        <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
+          <Icon name="menu" size={30} color="#000" />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.heading}>Upload Order</Text>
+        </View>
+      </View>
+
+      {/* Pick Prompt */}
+      {!selectedFile && (
+        <View style={styles.centerMessageContainer}>
+          <Text style={styles.subtext}>Pick a file to update stock</Text>
+        </View>
+      )}
+
+      {/* Table */}
       {headers.length > 0 && (
         <>
-          <Text style={styles.title}>ORDER LIST</Text>
-
           <ScrollView horizontal>
             <View>
-              {/* Table Header */}
               <View style={styles.tableRowHeader}>
                 {headers.map((header, index) => (
                   <View key={index} style={styles.cellWrapper}>
@@ -164,11 +168,10 @@ const OrderUpload = ({ navigation }) => {
                 ))}
               </View>
 
-              {/* FlatList for rows */}
               <FlatList
                 data={rows}
                 keyExtractor={(_, index) => `row-${index}`}
-                style={{ maxHeight: windowHeight * 0.9 }}
+                style={{ maxHeight: windowHeight * 0.75 }}
                 renderItem={({ item: row, index: rowIndex }) => (
                   <View
                     style={[
@@ -186,17 +189,31 @@ const OrderUpload = ({ navigation }) => {
               />
             </View>
           </ScrollView>
+        </>
+      )}
 
+      {/* Buttons */}
+      <View style={styles.buttonRow}>
+        <TouchableOpacity
+          style={styles.pickButton}
+          onPress={handleFilePick}
+          disabled={loading}
+        >
+          <Text style={styles.buttonText}>Pick Order File</Text>
+        </TouchableOpacity>
+
+        {selectedFile && (
           <TouchableOpacity
             style={styles.uploadButton}
             onPress={handleUpload}
             disabled={loading}
           >
-            <Text style={styles.uploadButtonText}>Upload Order</Text>
+            <Text style={styles.buttonText}>Upload File</Text>
           </TouchableOpacity>
-        </>
-      )}
+        )}
+      </View>
 
+      {/* Loading Overlay */}
       {loading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#fff" />
@@ -204,7 +221,6 @@ const OrderUpload = ({ navigation }) => {
         </View>
       )}
     </View>
-
   );
 };
 
@@ -213,10 +229,35 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 20,
+    paddingHorizontal: 10,
+    marginBottom: 10,
+  },
+  menuButton: { marginRight: 10 },
+  heading: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    flex: 1,
+    color: '#333',
+  },
+  subtext: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
+  centerMessageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   title: {
     fontSize: 20,
     fontWeight: '600',
-    marginVertical: 20,
+    marginVertical: 12,
     textAlign: 'center',
   },
   tableRowHeader: {
@@ -251,14 +292,29 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'center',
   },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginVertical: 20,
+    paddingHorizontal: 10,
+  },
+  pickButton: {
+    flex: 1,
+    backgroundColor: '#007bff',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
   uploadButton: {
-    margin: 16,
+    flex: 1,
     backgroundColor: '#28a745',
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
+    marginHorizontal: 5,
   },
-  uploadButtonText: {
+  buttonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
