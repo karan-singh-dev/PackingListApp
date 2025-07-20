@@ -8,8 +8,16 @@ import {
   ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather'; // or MaterialCommunityIcons, FontAwesome, etc.
+import { useSelector } from 'react-redux';
+import ClientSelection from '../components/ClintSelection';
 
-export default function NavigationPage({ navigation }) {
+export default function PackingPage({ navigation }) {
+
+  const selectedClient = useSelector((state) => state.clientData.selectedClient);
+  const marka = selectedClient?.marka || '';
+  const client = selectedClient?.client_name || '';
+    const isClientSelected = !!client;
+
   const buttons = [
     {
       title: 'Order Upload',
@@ -51,6 +59,14 @@ export default function NavigationPage({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
+      {!isClientSelected ? (<ClientSelection/>) : (<><View style={styles.headerContainer}>
+        <TouchableOpacity onPress={() => navigation.openDrawer()} style={[styles.menuButton,]}>
+          <Icon name="menu" size={30} color="#000" />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.heading}>Packing</Text>
+        </View>
+      </View>
       <ScrollView contentContainerStyle={styles.buttonContainer}>
         {buttons.map((btn, idx) => (
           <TouchableOpacity
@@ -64,7 +80,9 @@ export default function NavigationPage({ navigation }) {
             </View>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+      </ScrollView></>) }
+      
+    
     </SafeAreaView>
   );
 }
@@ -73,7 +91,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f2f3f5',
-    paddingTop: 20,
+  
   },
   buttonContainer: {
     paddingHorizontal: 20,
@@ -102,4 +120,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+   headerContainer: { marginBottom: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', paddingTop: 20, },
+    menuButton: { marginLeft: 15 },
+    heading: { fontSize: 22, fontWeight: "bold", textAlign: "center", color: "#000" },
+ 
 });

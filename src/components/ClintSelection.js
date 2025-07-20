@@ -8,7 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import {
   fetchClients, addClientAsync, deleteClientAsync, setSelectedClient,
 } from '../../redux/ClientDataSlice';
-import API from '../components/API';
+import API from './API';
 import { resetNextCaseNumberToOne, setNextCaseNumber } from '../../redux/PackigListSlice';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -29,6 +29,7 @@ const ClientSelection = () => {
 
   useEffect(() => {
     dispatch(fetchClients());
+    // fetchData()
   }, [dispatch]);
 
   const handleAddClient = async () => {
@@ -80,35 +81,24 @@ const ClientSelection = () => {
   };
 
 
-  const fetchData = async (selected) => {
-    try {
-      const res = await API.get(`/api/packing/packing-details/?client=${selected.client_name}&marka=${selected.marka}`);
-      if (res.status === 200) {
-        if (res.data.length > 0) {
-          dispatch(setNextCaseNumber(res.data[res.data.length - 1].case_no_end + 1));
-        } else {
-          dispatch(resetNextCaseNumberToOne());
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch packing data:", error);
-    }
-  };
 
   const handleClientSelection = (clientKey) => {
     setSelectedClientKey(clientKey);
     const selected = clients.find(c => generateKey(c) === clientKey);
 
-    if (selected) {
-      fetchData(selected);
-      dispatch(setSelectedClient(selected));
-    }
+  
   };
 
   const selectedClientData = clients.find(c => generateKey(c) === selectedClientKey);
 
   return (
     <View style={styles.container}>
+      <View style={styles.headerContainer}>
+     
+        <View style={{ flex: 1 }}>
+          <Text style={styles.heading}>Client Details</Text>
+        </View>
+      </View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={[styles.label, { color: '#fff' }]}>Clients:</Text>
 
@@ -132,9 +122,7 @@ const ClientSelection = () => {
           <Text style={styles.errorText}>No clients found. Add one to start.</Text>
         )}
 
-        <TouchableOpacity style={styles.primaryButton} onPress={() => setModalVisible(true)}>
-          <Text style={styles.primaryButtonText}>ADD CLIENT NAME</Text>
-        </TouchableOpacity>
+       
 
         {selectedClientData && (
           <View style={styles.clientCard}>
@@ -154,8 +142,8 @@ const ClientSelection = () => {
             <TouchableOpacity
               style={styles.primaryButton}
               onPress={() => {
-                dispatch(setSelectedClient(selectedClientData)); // ✅ store client
-                navigation.replace('AppDrawer');                 // ✅ navigate to drawer
+                dispatch(setSelectedClient(selectedClientData)); 
+                             
               }}
             >
               <Text style={styles.primaryButtonText}>
@@ -208,45 +196,7 @@ const ClientSelection = () => {
       </Modal>
 
 
-      {/* Add Client Modal */}
-      <Modal visible={modalVisible} transparent animationType="fade">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add New Client</Text>
-            <Text style={styles.label}>Name</Text>
-            <TextInput
-              placeholder="Client Name"
-              style={styles.input}
-              value={clientName}
-              onChangeText={setClientName}
-              placeholderTextColor={'#ccc'}
-            />
-            <Text style={styles.label}>Mark</Text>
-            <TextInput
-              placeholder="Marka"
-              style={styles.input}
-              value={clientMArka}
-              onChangeText={setClientMArka}
-              placeholderTextColor={'#ccc'}
-            />
-            <Text style={styles.label}>Country</Text>
-            <TextInput
-              placeholder="Country"
-              style={styles.input}
-              value={clientCountry}
-              onChangeText={setClientCountry}
-              placeholderTextColor={'#ccc'}
-            />
-
-            <TouchableOpacity style={styles.primaryButton} onPress={handleAddClient}>
-              <Text style={styles.primaryButtonText}>Submit</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.deleteButton} onPress={() => setModalVisible(false)}>
-              <Text style={styles.deleteButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+     
     </View>
   );
 };
@@ -256,6 +206,22 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: '#012B4B',
+  },
+  headerContainer:{
+    marginBottom: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 20,
+  },
+  menuButton: {
+    marginLeft: 15
+  },
+  heading: {
+    fontSize: 22,
+    fontWeight: "bold",
+    textAlign: "center",
+    color: "#fff"
   },
   scrollContent: {
     paddingBottom: 40,

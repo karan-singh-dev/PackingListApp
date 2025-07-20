@@ -8,8 +8,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSelector } from 'react-redux';
 import LogIn from './src/screens/LogIn';
 import Splash from './src/screens/Splash';
-import ClientSelection from './src/screens/ClintSelection';
+import ClientSelection from './src/components/ClintSelection';
 import AppDrawer from './src/navigation/AppDrawer';
+import CreateClient from './src/components/CreateClients';
+import Invoicestack from './src/screens/inviices/Navigation/Invoicestack';
+import PerformaInvoice from './src/screens/inviices/PerformaInvoice';
+import CommercialInvoice from './src/screens/inviices/CommercialInvoice';
 
 const Stack = createNativeStackNavigator();
 
@@ -35,8 +39,10 @@ export default function AppNavigator() {
             <Stack.Screen name="LogIn" component={LogIn} />
           ) : (
             <>
-              <Stack.Screen name="ClintSelection" component={ClientSelection} />
               <Stack.Screen name="AppDrawer" component={AppDrawer} />
+              <Stack.Screen name="CreateClient" component={CreateClient} />
+              <Stack.Screen name="CommercialInvoice" component={CommercialInvoice} />
+            <Stack.Screen name="PerformaInvoice" component={PerformaInvoice} />
             </>
           )}
         </Stack.Navigator>

@@ -17,6 +17,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import API from '../components/API';
 import { setNextCaseNumber, setPackingType } from '../../redux/PackigListSlice';
 import { useFocusEffect } from '@react-navigation/native';
+import Scanner from '../components/Scanner';
 
 const COLUMN_WIDTH = 140;
 
@@ -244,6 +245,7 @@ const RowPackingList = ({ navigation }) => {
               <View style={{flex:1}}>
                 <Text style={styles.heading}> Row Packing Details</Text>
               </View>
+              <Scanner/>
             </View>
       <TextInput
         style={styles.searchInput}

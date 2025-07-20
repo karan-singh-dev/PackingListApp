@@ -46,6 +46,8 @@ const Estimate = ({ navigation }) => {
         params: { client_name: client, marka },
       });
       const data = response.data;
+      console.log('estimate data ======>',data);
+      
       if (!Array.isArray(data) || data.length === 0) {
         Alert.alert('No Data', 'No estimate data found for this client.');
         return;
@@ -66,8 +68,17 @@ const Estimate = ({ navigation }) => {
 
   const handleCopyFromEstimate = async () => {
     try {
-      await API.post('/api/packing/packing/copy-from-estimate/', { client, marka });
+      setLoading(true)
+      console.log("{ client:client,marka}",{ client:client,marka});
+      
+    const res =   await API.post('/api/packing/packing/copy-from-estimate/', { client:client,marka});
+    if(res.status==200){
+      navigation.navigate('RowPackingList')
+    }
+   console.log('hello',res);
+   setLoading(false)
     } catch (error) {
+       setLoading(false)
       console.error("Error copying from estimate:", error.response?.data || error.message);
       Alert.alert('Error', 'Could not copy from estimate');
     }
@@ -149,7 +160,7 @@ const Estimate = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       fetchDataFromAPI();
-      handleCopyFromEstimate();
+      // handleCopyFromEstimate();
     }, [client, marka])
   );
 
@@ -202,7 +213,8 @@ const Estimate = ({ navigation }) => {
             </View>
           </ScrollView>
 
-          <TouchableOpacity
+          <View style={{flexDirection:'row',gap:15,justifyContent:'space-between',margin:10}}>
+            <TouchableOpacity
             style={styles.downloadButton}
             onPress={() => {
               const estimateData = getEstimateDataObjects();
@@ -213,8 +225,14 @@ const Estimate = ({ navigation }) => {
               downloadEstimateExcel(estimateData);
             }}
           >
-            <Text style={styles.downloadButtonText}>Download Estimate Excel</Text>
+            <Text style={styles.downloadButtonText}>Download Estimate</Text>
           </TouchableOpacity>
+           <TouchableOpacity
+            style={[styles.downloadButton,{backgroundColor:'#244cfcff',margin:10}]}
+            onPress={() => { handleCopyFromEstimate()}}>
+            <Text style={styles.downloadButtonText}>Start Packing</Text>
+          </TouchableOpacity>
+          </View>
         </>
       )}
 
@@ -262,14 +280,13 @@ const styles = StyleSheet.create({
   },
   downloadButton: {
     margin: 10,
-    backgroundColor: '#2196F3',
+    backgroundColor: '#19ad05ff',
     padding: 12,
     borderRadius: 8,
-    alignItems: 'center',
   },
   downloadButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
   loadingOverlay: {

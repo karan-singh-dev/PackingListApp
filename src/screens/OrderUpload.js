@@ -8,26 +8,23 @@ import {
   Alert,
   StyleSheet,
   useWindowDimensions,
-  FlatList
+  FlatList,
+  Modal, TextInput
 } from 'react-native';
 import { pick, types } from '@react-native-documents/picker';
+import { Dropdown } from 'react-native-element-dropdown';
 import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
 import API from '../components/API';
 import { useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Checklist from '../components/Checklist';
 
 const OrderUpload = ({ navigation }) => {
   const { height: windowHeight } = useWindowDimensions();
   const selectedClient = useSelector((state) => state.clientData.selectedClient);
 
-  if (!selectedClient) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Please select a client first.</Text>
-      </View>
-    );
-  }
+
 
   const marka = selectedClient.marka;
   const client = selectedClient.client_name;
@@ -36,50 +33,90 @@ const OrderUpload = ({ navigation }) => {
   const [rows, setRows] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [proceeded, setProceeded] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [showEstimateModal, setShowEstimateModal] = useState(false);
+  const [selectedGSTs, setSelectedGSTs] = useState([]);
+  const [gstValue, setGstValue] = useState(null);
+  const [rupees, setRupees] = useState(0);
+
+
+  const gstOptions = [
+    { label: '5%', value: '5' },
+    { label: '12%', value: '12' },
+    { label: '18%', value: '18' },
+    { label: '28%', value: '28' },
+  ];
+
+  const handleGstSelect = (value) => {
+    const alreadySelected = selectedGSTs.find(item => item.gst === value);
+    if (!alreadySelected) {
+      setSelectedGSTs([...selectedGSTs, { gst: value, discount: '' }]);
+    }
+    setGstValue(null);
+  };
+
+
+  const handleDiscountChange = (index, value) => {
+    const updated = [...selectedGSTs];
+    updated[index].discount = value;
+    setSelectedGSTs(updated);
+  };
+
+  const handleRemoveGst = (index) => {
+    const updated = [...selectedGSTs];
+    updated.splice(index, 1);
+    setSelectedGSTs(updated);
+  };
+
+
 
   const handleFilePick = async () => {
-  try {
-    setLoading(true);
-    const res = await pick({
-      allowMultiSelection: false,
-      type: [types.xlsx, types.xls],
-    });
 
-    if (!res || !res[0]) {
-      Alert.alert('No file selected');
-      return;
+    try {
+      setLoading(true);
+      const res = await pick({
+        allowMultiSelection: false,
+        type: [types.xlsx, types.xls],
+      });
+
+
+      if (!res || !res[0]) {
+        Alert.alert('No file selected');
+        return;
+      }
+
+      const file = res[0];
+      setSelectedFile(file);
+      const filePath = file.uri.replace('file://', '');
+      const b64 = await RNFS.readFile(filePath, 'base64');
+
+      const wb = XLSX.read(b64, { type: 'base64' });
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+      if (data.length === 0) {
+        Alert.alert('No data found in file');
+        return;
+      }
+
+      const headerRow = Object.keys(data[0]);
+      const rowData = data.map(obj => headerRow.map(key => obj[key] ?? ''));
+
+      setHeaders(headerRow);
+      setRows(rowData);
+    } catch (err) {
+      console.error('Error reading file:', err);
+      Alert.alert('Error', 'Could not read or parse file');
+    } finally {
+      setLoading(false);
     }
-
-    const file = res[0];
-    setSelectedFile(file);
-    const filePath = file.uri.replace('file://', '');
-    const b64 = await RNFS.readFile(filePath, 'base64');
-
-    const wb = XLSX.read(b64, { type: 'base64' });
-    const wsname = wb.SheetNames[0];
-    const ws = wb.Sheets[wsname];
-    const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
-
-    if (data.length === 0) {
-      Alert.alert('No data found in file');
-      return;
-    }
-
-    const headerRow = Object.keys(data[0]);
-    const rowData = data.map(obj => headerRow.map(key => obj[key] ?? ''));
-
-    setHeaders(headerRow);
-    setRows(rowData);
-  } catch (err) {
-    console.error('Error reading file:', err);
-    Alert.alert('Error', 'Could not read or parse file');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 
   const handleUpload = async () => {
+
     if (!selectedFile) {
       Alert.alert('Select file first');
       return;
@@ -103,10 +140,7 @@ const OrderUpload = ({ navigation }) => {
 
       if (response.status === 200) {
         Alert.alert('Success', 'File uploaded successfully!');
-        await generateEstimate();
-        setHeaders([]);
-        setRows([]);
-        setSelectedFile(null);
+        setSuccess(true)
       } else {
         Alert.alert('Error', 'File upload failed');
       }
@@ -119,108 +153,213 @@ const OrderUpload = ({ navigation }) => {
   };
 
   const generateEstimate = async () => {
+    console.log(client, marka, selectedGSTs, rupees)
+
     try {
+       setShowEstimateModal(false)
+      setLoading(true)
       const res = await API.post('/api/asstimate/genrate/', {
         client_name: client,
         marka: marka,
+        gst_details: selectedGSTs,
+        rupees: parseInt(rupees)
       });
 
       if (res.status === 200) {
-        navigation.navigate('Esstimate');
+        console.log('hello', res);
+
+        setProceeded(false)
+        setSuccess(false)
+        setLoading(false)
+        setSelectedGSTs([])
+        setGstValue(null)
+        setRupees('')
+        setHeaders([]);
+        setRows([]);
+        setSelectedFile(null);
+        navigation.navigate('Estimate');
+
       } else {
+         setLoading(false)
         Alert.alert('Error', 'Failed to generate estimate');
       }
     } catch (error) {
+       setLoading(false)
       console.error('Estimate error:', error);
       Alert.alert('Error', 'Could not generate estimate');
     }
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
-          <Icon name="menu" size={30} color="#000" />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.heading}>Upload Order</Text>
-        </View>
-      </View>
+    (<View style={styles.container}>
+      {!proceeded ? (<Checklist name={['part_no', 'description', 'qty']}
+        onProceed={() => setProceeded(true)} />) : (<>
+          {/* Header */}
+          <View style={styles.headerContainer}>
+            <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
+              <Icon name="menu" size={30} color="#000" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.heading}>Upload Order</Text>
+            </View>
+          </View>
 
-      {/* Pick Prompt */}
-      {!selectedFile && (
-        <View style={styles.centerMessageContainer}>
-          <Text style={styles.subtext}>Pick a file to update stock</Text>
-        </View>
-      )}
+          {/* Pick Prompt */}
+          {!selectedFile && (
+            <View style={styles.centerMessageContainer}>
+              <Text style={styles.subtext}>Pick a file to update Order</Text>
+            </View>
+          )}
 
-      {/* Table */}
-      {headers.length > 0 && (
-        <>
-          <ScrollView horizontal>
-            <View>
-              <View style={styles.tableRowHeader}>
-                {headers.map((header, index) => (
-                  <View key={index} style={styles.cellWrapper}>
-                    <Text style={styles.headerText}>{header}</Text>
-                  </View>
-                ))}
-              </View>
-
-              <FlatList
-                data={rows}
-                keyExtractor={(_, index) => `row-${index}`}
-                style={{ maxHeight: windowHeight * 0.75 }}
-                renderItem={({ item: row, index: rowIndex }) => (
-                  <View
-                    style={[
-                      styles.tableRow,
-                      rowIndex % 2 === 0 ? styles.rowEven : styles.rowOdd,
-                    ]}
-                  >
-                    {row.map((cell, cellIndex) => (
-                      <View key={cellIndex} style={styles.cellWrapper}>
-                        <Text style={styles.cellText}>{cell}</Text>
+          {/* Table */}
+          {headers.length > 0 && (
+            <>
+              <ScrollView horizontal>
+                <View>
+                  <View style={styles.tableRowHeader}>
+                    {headers.map((header, index) => (
+                      <View key={index} style={styles.cellWrapper}>
+                        <Text style={styles.headerText}>{header}</Text>
                       </View>
                     ))}
                   </View>
-                )}
-              />
+
+                  <FlatList
+                    data={rows}
+                    keyExtractor={(_, index) => `row-${index}`}
+                    style={{ maxHeight: windowHeight * 0.75 }}
+                    renderItem={({ item: row, index: rowIndex }) => (
+                      <View
+                        style={[
+                          styles.tableRow,
+                          rowIndex % 2 === 0 ? styles.rowEven : styles.rowOdd,
+                        ]}
+                      >
+                        {row.map((cell, cellIndex) => (
+                          <View key={cellIndex} style={styles.cellWrapper}>
+                            <Text style={styles.cellText}>{cell}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  />
+                </View>
+              </ScrollView>
+            </>
+          )}
+
+          {/* Buttons */}
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={styles.pickButton}
+              onPress={handleFilePick}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>Pick Order File</Text>
+            </TouchableOpacity>
+
+            {selectedFile && (
+              !success ? (<TouchableOpacity
+                style={styles.uploadButton}
+                onPress={handleUpload}
+                disabled={loading}
+              >
+                <Text style={styles.buttonText}>Upload File</Text>
+              </TouchableOpacity>) : (<TouchableOpacity
+                style={[styles.uploadButton, { backgroundColor: '#e74d10ff' }]}
+                onPress={() => setShowEstimateModal(true)}
+              >
+                <Text style={styles.uploadButtonText}>Generate Estimate</Text>
+              </TouchableOpacity>
+              )
+
+            )}
+          </View>
+
+          {/* Loading Overlay */}
+          {loading && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color="#fff" />
+              <Text style={{ marginTop: 10, color: '#fff' }}>Please wait...</Text>
             </View>
-          </ScrollView>
-        </>
-      )}
+          )}
 
-      {/* Buttons */}
-      <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={styles.pickButton}
-          onPress={handleFilePick}
-          disabled={loading}
-        >
-          <Text style={styles.buttonText}>Pick Order File</Text>
-        </TouchableOpacity>
+          <Modal visible={showEstimateModal} transparent animationType="slide">
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalheading}>Tax & Discount Detail</Text>
+                {selectedGSTs.map((item, index) => (
+                  <View key={index} style={{ flexDirection: 'row', marginTop: 10, gap: 10 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text>Gst </Text>
+                      <TextInput
+                        style={[styles.input]}
+                        value={item.gst}
+                        editable={false}
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text>Discount</Text>
+                      <TextInput
+                        style={[styles.input,]}
+                        placeholder="Discount %"
+                        keyboardType="numeric"
+                        placeholderTextColor={'#8a8686ff'}
+                        value={item.discount}
+                        onChangeText={(text) => handleDiscountChange(index, text)}
+                      />
+                    </View>
+                    <View style={{ justifyContent: 'center', marginTop: 20 }}>
+                      <TouchableOpacity onPress={() => handleRemoveGst(index)} style={styles.removeIcon}>
+                        <Icon name="close-circle" size={24} color="#dc3545" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
 
-        {selectedFile && (
-          <TouchableOpacity
-            style={styles.uploadButton}
-            onPress={handleUpload}
-            disabled={loading}
-          >
-            <Text style={styles.buttonText}>Upload File</Text>
-          </TouchableOpacity>
-        )}
-      </View>
 
-      {/* Loading Overlay */}
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#fff" />
-          <Text style={{ marginTop: 10, color: '#fff' }}>Please wait...</Text>
-        </View>
-      )}
-    </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
+
+                  <Dropdown
+                    style={styles.dropdown}
+                    data={gstOptions.filter(opt => !selectedGSTs.some(sel => sel.gst === opt.value))}
+                    labelField="label"
+                    valueField="value"
+                    placeholder="Add GST  +"
+                    value={gstValue}
+                    onChange={(item) => handleGstSelect(item.value)}
+                    renderRightIcon={() => null}
+                  />
+                </View>
+                <View style={styles.dollarmain}>
+                  <Text style={[styles.modalheading, { marginTop: 20 }]}>Conversion Rate</Text>
+                  <View style={styles.dollarBox}>
+                    <Text style={{ fontSize: 18 }}>1 Dollar($) :</Text>
+                    <TextInput
+                      style={[styles.input, { flex: 1 }]}
+                      value={rupees}
+                      placeholder='Rupees (₹)'
+                      placeholderTextColor={'#6e6d6dff'}
+                      keyboardType="numeric"
+                      onChangeText={(text) => setRupees(text)}
+                    />
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
+                  <TouchableOpacity onPress={() => setShowEstimateModal(false)}>
+                    <Text style={[styles.pickButtonText, { color: 'red' }]}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={generateEstimate}>
+                    <Text style={[styles.pickButtonText, { backgroundColor: '#315ff8ff' }]}>Submit</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+
+        </>)}
+    </View>)
   );
 };
 
@@ -330,6 +469,83 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 999,
   },
+  uploadButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+  },
+  dropdown: {
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginTop: 10,
+    width: '40%'
+  },
+  input: {
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginTop: 5,
+  },
+  label: {
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  removeIcon: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  modalheading: {
+    marginBottom: 10,
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center'
+  },
+  dollarBox: {
+    flexDirection: 'row',
+    marginTop: 10,
+    gap: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+
+  },
+  dollarmain: {
+    borderTopColor: '#ccc',
+    borderTopWidth: 1,
+    marginTop: 20,
+  },
+  dollerMainHeading: {
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: '600'
+  },
+  pickButtonText: {
+    padding: 10,
+    borderRadius: 8,
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  }
+
+
+
 });
 
 export default OrderUpload;

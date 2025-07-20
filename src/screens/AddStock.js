@@ -15,12 +15,15 @@ import RNFS from 'react-native-fs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSelector } from 'react-redux';
 import API from '../components/API';
+import Checklist from '../components/Checklist';
+
 
 const AddStock = ({ navigation }) => {
   const [headers, setHeaders] = useState([]);
   const [rows, setRows] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(false);
+    const [proceeded, setProceeded] = useState(false);
 
   const selectedClient = useSelector((state) => state.clientData.selectedClient);
   const marka = selectedClient?.marka || '';
@@ -82,6 +85,7 @@ const AddStock = ({ navigation }) => {
       setHeaders([]);
       setRows([]);
       setSelectedFile(null);
+      setProceeded(false)
       navigation.navigate('StockList');
     } catch (err) {
       console.error('Upload error:', err);
@@ -103,22 +107,22 @@ const AddStock = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.headerContainer}>
+      {!proceeded ? (<Checklist name={['part_no','description','qty','brand_name']}
+        onProceed={() => setProceeded(true)}/>) : (<><View style={styles.headerContainer}>
         <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
           <Icon name="menu" size={30} color="#000" />
         </TouchableOpacity>
         <Text style={styles.heading}>Upload Stock</Text>
       </View>
 
-      {/* Center message */}
+     
       {!selectedFile && (
         <View style={styles.centerMessageContainer}>
           <Text style={styles.subtext}>Pick a file to update stock</Text>
         </View>
       )}
 
-      {/* Table */}
+     
       {headers.length > 0 && (
         <ScrollView horizontal>
           <View>
@@ -141,7 +145,7 @@ const AddStock = ({ navigation }) => {
         </ScrollView>
       )}
 
-      {/* Bottom bar */}
+     
       <View style={styles.bottomBar}>
         <TouchableOpacity style={styles.pickButton} onPress={handleFilePick}>
           <Text style={styles.pickButtonText}>Pick File</Text>
@@ -154,15 +158,17 @@ const AddStock = ({ navigation }) => {
         )}
       </View>
 
-      {/* Loading overlay */}
+      
       {loading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#fff" />
           <Text style={{ marginTop: 10, color: '#fff' }}>Uploading...</Text>
         </View>
       )}
+      </>
+)}
     </View>
-  );
+  )
 };
 
 const styles = StyleSheet.create({
