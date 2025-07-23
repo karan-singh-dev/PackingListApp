@@ -11,18 +11,25 @@ import {
   TextInput,
   FlatList,
   Modal,
+  Alert,
 } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useDispatch, useSelector } from 'react-redux';
+import { useRoute } from '@react-navigation/native';
+
 import API from '../components/API';
 import { setNextCaseNumber, setPackingType } from '../../redux/PackigListSlice';
 import { useFocusEffect } from '@react-navigation/native';
-import Scanner from '../components/Scanner';
 
 const COLUMN_WIDTH = 140;
 
-const RowPackingList = ({ navigation }) => {
+const RowPackingList = ({ navigation, route }) => {
+  
   const dispatch = useDispatch();
+  const [allData, setAllData] = useState([]);
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannedCode, setScannedCode] = useState( route.params?.scannedCode);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -33,7 +40,7 @@ const RowPackingList = ({ navigation }) => {
   const { height: windowHeight } = useWindowDimensions();
   const selectedClient = useSelector((state) => state.clientData.selectedClient);
   const PackingType = useSelector((state) => state.packing.PackingType);
-
+  // const scannedCode = route.params?.scannedCode;
   const PackingTypeRef = useRef(PackingType);
   PackingTypeRef.current = PackingType;
 
@@ -48,7 +55,7 @@ const RowPackingList = ({ navigation }) => {
       });
       if (res.data.length > 0) {
         if (res.data[res.data.length - 1].cbm === "0.0000") {
-          console.log(res.data[res.data.length - 1].cbm)
+          // console.log(res.data[res.data.length - 1].cbm)
           dispatch(setPackingType("Mix"));
           dispatch(setNextCaseNumber((res.data[res.data.length - 1].case_no_end).toString()));
         }
@@ -59,6 +66,7 @@ const RowPackingList = ({ navigation }) => {
       }
       else {
         dispatch(setNextCaseNumber((1).toString()));
+        dispatch(setPackingType(null));
       }
 
     } catch (error) {
@@ -68,13 +76,13 @@ const RowPackingList = ({ navigation }) => {
       setLoading(false)
     }
   };
+
+
   useFocusEffect(
     useCallback(() => {
       fetchData();
     }, [client, marka])
-
   );
-
 
   const fetchDataFromAPI = async () => {
     try {
@@ -94,13 +102,14 @@ const RowPackingList = ({ navigation }) => {
   };
 
 
+  
+
   useFocusEffect(
     useCallback(() => {
       fetchData();
       fetchDataFromAPI();
       setSearchQuery('')
     }, [client, marka])
-
   );
 
   const onRefresh = useCallback(() => {
@@ -110,8 +119,7 @@ const RowPackingList = ({ navigation }) => {
 
   const handleStartPacking = (item) => {
     setSelectedItem(item);
-
-    // console.log('Current PackingType at handleStartPacking call:', PackingTypeRef.current);
+    console.log("🚀 handleStartPacking called with:", item);
 
     if (PackingTypeRef.current === null) {
       setChoiceModalVisible(true);
@@ -137,6 +145,49 @@ const RowPackingList = ({ navigation }) => {
   const filteredData = data.filter((item) =>
     item.part_no.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+
+  useFocusEffect(
+    useCallback(() => {
+      if (scannedCode) {
+        setSearchQuery(scannedCode);
+        setScannedCode('');
+      }
+    }, [scannedCode])
+  );
+
+
+   useFocusEffect(
+    React.useCallback(() => {
+      if(data.length==0) return;
+      if (route.params?.scannedCode) {
+        const code = route.params.scannedCode;
+        console.log('🔍 Received scannedCode:', code);
+        setSearchQuery(code);
+        console.log(data);
+        
+        const matched = data.find(
+          item => item.part_no?.toLowerCase() === code.toLowerCase()
+        );
+        console.log('matched',matched);
+        
+
+        if (matched) {
+          handleStartPacking(matched);
+        } else {
+          Alert.alert('Not Found', `No item found for: ${code}`);
+        }
+
+        // Clear scannedCode to avoid reprocessing on focus
+        navigation.setParams({ scannedCode: undefined });
+      }
+    }, [data,route.params?.scannedCode])
+  );
+
+
+
+
+
 
   const headers = ['Part No', 'Description', 'Qty', 'Stock Qty', 'Action'];
 
@@ -195,13 +246,16 @@ const RowPackingList = ({ navigation }) => {
         <View style={styles.headerContainer}>
           <Text style={styles.title}>📦 Row Packing List</Text>
         </View>
-        <TextInput
-          style={[styles.searchInput,]}
-          placeholder="Search by Part Number"
-          placeholderTextColor={"#ccc"}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by Part Number"
+            placeholderTextColor={"#ccc"}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+         
+        </View>
         <Text style={styles.messageText}>No item available</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View>
@@ -235,25 +289,43 @@ const RowPackingList = ({ navigation }) => {
       </View>
     );
   }
+  
+
+
+
+ const printData=(abc)=>{
+  console.log("DaTA",abc);
+  
+ }
+
+
 
   return (
     <View style={styles.container}>
-       <View style={styles.headerContainer}>
-              <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
-                <Icon name="menu" size={30} color="#000" />
-              </TouchableOpacity>
-              <View style={{flex:1}}>
-                <Text style={styles.heading}> Row Packing Details</Text>
-              </View>
-              <Scanner/>
-            </View>
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Search by Part Number"
-        placeholderTextColor={"#ccc"}
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-      />
+      <View style={styles.headerContainer}>
+        <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
+          <Icon name="menu" size={30} color="#000" />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.heading}> Row Packing Details</Text>
+        </View>
+      </View>
+
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search by Part Number"
+          placeholderTextColor={"#ccc"}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        <TouchableOpacity
+        style={{ padding: 10 }}
+        onPress={() => navigation.navigate('QRScannerScreen')}
+      >
+        <Icon name="camera-outline" size={24} color="#666" />
+      </TouchableOpacity>
+      </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View>
@@ -285,7 +357,6 @@ const RowPackingList = ({ navigation }) => {
         </View>
       </ScrollView>
 
-      {/* Packing choice modal */}
       <Modal visible={choiceModalVisible} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -316,7 +387,6 @@ const RowPackingList = ({ navigation }) => {
           </View>
         </View>
       </Modal>
-
     </View>
   );
 };
@@ -328,8 +398,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   heading: { fontSize: 22, fontWeight: "bold", textAlign: "center", color: "#333" },
-  headerContainer: {marginBottom:30,flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', paddingTop: 20,  backgroundColor: '#fff'},
-  menuButton: { marginLeft:15},
+  headerContainer: { marginBottom: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', paddingTop: 20, backgroundColor: '#fff' },
+  menuButton: { marginLeft: 15 },
   title: {
     fontSize: 22,
     fontWeight: '700',
@@ -337,15 +407,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#333',
   },
-  searchInput: {
-    height: 40,
-    borderColor: '#ccc',
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
+    borderColor: '#ccc',
     borderRadius: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     marginBottom: 16,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
     fontSize: 14,
     color: '#333',
+  },
+  cameraButton: {
+    paddingHorizontal: 8,
   },
   tableRowHeader: {
     flexDirection: 'row',
@@ -462,11 +540,10 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingVertical: 12,
     paddingHorizontal: 20,
-    backgroundColor: '#ccc', // gray button
+    backgroundColor: '#ccc',
     borderRadius: 8,
     alignItems: 'center',
   },
-
   cancelButtonText: {
     color: '#333',
     fontSize: 16,

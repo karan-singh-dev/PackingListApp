@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, TextInput, Modal, StyleSheet, Alert, ScrollView, TouchableOpacity,
 } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import {
   fetchClients, addClientAsync, deleteClientAsync, setSelectedClient,
 } from '../../redux/ClientDataSlice';
@@ -27,10 +27,16 @@ const ClientSelection = () => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [confirmClientName, setConfirmClientName] = useState('');
 
-  useEffect(() => {
-    dispatch(fetchClients());
-    // fetchData()
-  }, [dispatch]);
+
+   useFocusEffect(
+      useCallback(() => {
+         dispatch(fetchClients());
+         console.log('clients',clients);
+        
+         
+      }, [dispatch])
+    );
+  
 
   const handleAddClient = async () => {
     if (!clientName.trim() || !clientCountry.trim() || !clientMArka.trim()) {
@@ -110,11 +116,16 @@ const ClientSelection = () => {
           labelField="label"
           valueField="value"
           placeholder={loading ? 'Loading...' : 'Select client'}
+          // placeholderTextColor={'#000'}
           value={selectedClientKey}
           onChange={(item) => handleClientSelection(item.value)}
           style={styles.dropdown}
           disable={loading}
           keyExtractor={(item) => item.value}
+    textStyle={{ color: '#000' }}
+  selectedTextStyle={{ color: '#000' }}
+  placeholderStyle={{ color: '#000' }}
+  itemTextStyle={{ color: '#000' }} 
         />
 
         {error && <Text style={styles.errorText}>Error: {error}</Text>}
@@ -166,7 +177,7 @@ const ClientSelection = () => {
             {selectedClientData ? (
               <>
                 <Text style={styles.modalTitle}>Confirm Deletion</Text>
-                <Text style={{ marginBottom: 10 }}>
+                <Text style={{ marginBottom: 10,color:'#000' }}>
                   Type "{selectedClientData.client_name}" to confirm deletion.
                 </Text>
                 <TextInput
@@ -202,6 +213,9 @@ const ClientSelection = () => {
 };
 
 const styles = StyleSheet.create({
+
+
+
   container: {
     flex: 1,
     padding: 20,
@@ -239,6 +253,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 15,
     marginBottom: 20,
+    
   },
   primaryButton: {
     backgroundColor: '#007BFF',
