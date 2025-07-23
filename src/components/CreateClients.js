@@ -1,156 +1,233 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  View, Text, TextInput, Modal, StyleSheet, Alert, ScrollView, TouchableOpacity,
+  View, Text, TextInput, StyleSheet, Alert, ScrollView, TouchableOpacity,
 } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
-import {
-  fetchClients, addClientAsync, deleteClientAsync, setSelectedClient,
-} from '../../redux/ClientDataSlice';
-import API from './API';
-import { resetNextCaseNumberToOne, setNextCaseNumber } from '../../redux/PackigListSlice';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-
-const generateKey = (client) => `${client.client_name}_${client.country}`;
+import { addClientAsync } from '../../redux/ClientDataSlice';
 
 const CreateClient = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
 
-  const { clients, loading, error } = useSelector((state) => state.clientData);
-  const [selectedClientKey, setSelectedClientKey] = useState(null);
-  const [modalVisible, setModalVisible] = useState(true);
+  const { loading } = useSelector((state) => state.clientData);
+
+  // Form fields
   const [clientName, setClientName] = useState('');
   const [clientCountry, setClientCountry] = useState('');
-  const [clientMArka, setClientMArka] = useState('');
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [confirmClientName, setConfirmClientName] = useState('');
+  const [clientMarka, setClientMarka] = useState('');
+  const [address, setAddress] = useState('');
+  const [vesselNo, setVesselNo] = useState(null);
+  const [portOfLoading, setPortOfLoading] = useState('');
+  const [termsOfPayment, setTermsOfPayment] = useState('');
+  const [deliveryTerms, setDeliveryTerms] = useState('');
+  const [portOfDischarge, setPortOfDischarge] = useState('');
+  const [finalDestination, setFinalDestination] = useState('');
 
-//   useEffect(() => {
-//     setModalVisible(true)
-//   }, [dispatch]);
+  const vesselType = [
+    { label: 'Sea', value: 'Sea' },
+    { label: 'Road', value: 'Road' },
+    { label: 'Air', value: 'Air' },
+  ];
 
-  const handleAddClient = async () => {
-    if (!clientName.trim() || !clientCountry.trim() || !clientMArka.trim()) {
-      Alert.alert('Validation Error', 'All fields are required');
-      return;
+
+  const validateClientData = (data) => {
+    const errors = {};
+
+    if (!data.client_name?.trim()) {
+      errors.client_name = 'Client Name is required';
+    }
+    if (!data.marka?.trim()) {
+      errors.marka = 'Marka is required';
+    }
+    if (!data.country?.trim()) {
+      errors.country = 'Country is required';
+    }
+    if (!data.address?.trim()) {
+      errors.address = 'Address is required';
+    }
+    if (!data.vessel_no?.trim()) {
+      errors.vessel_no = 'Vessel Type is required';
+    }
+    if (!data.port_of_loading?.trim()) {
+      errors.port_of_loding = 'Port of Loding is required';
+    }
+    if (!data.terms_of_payment?.trim()) {
+      errors.terms_of_payment = 'Terms of Payment is required';
+    }
+    if (!data.delivery_terms?.trim()) {
+      errors.delivery_terms = 'Delivery Terms are required';
+    }
+    if (!data.port_of_discharge?.trim()) {
+      errors.port_of_discharge = 'Port of Discharge is required';
+    }
+    if (!data.final_destination?.trim()) {
+      errors.final_destination = 'Final Destination is required';
     }
 
-    const newClient = {
-      client_name: clientName.trim(),
-      country: clientCountry.trim(),
-      marka: clientMArka.trim(),
-    };
-
-    try {
-      await dispatch(addClientAsync(newClient)).unwrap();
-
-const newClientKey = generateKey(newClient);
-    setSelectedClientKey(newClientKey); // ✅ This sets the new client as selected
-
-
-      Alert.alert('Success', 'Client added successfully');
-      setClientName('');
-      setClientCountry('');
-      setClientMArka('');
-      setModalVisible(false);
-    } catch (err) {
-      console.error("Add client error:", err);
-      Alert.alert('Error', err?.message || 'Failed to add client');
-    }
+    return errors;
   };
 
 
 
 
- 
+  const handleAddClient = async () => {
 
 
 
-  const selectedClientData = clients.find(c => generateKey(c) === selectedClientKey);
+
+
+
+    const newClient = {
+      client_name: clientName.trim(),
+      country: clientCountry.trim(),
+      marka: clientMarka.trim(),
+      address: address.trim(),
+      vessel_no: vesselNo ? vesselNo.value : '',
+      port_of_loading: portOfLoading.trim(),
+      terms_of_payment: termsOfPayment.trim(),
+      delivery_terms: deliveryTerms.trim(),
+      port_of_discharge: portOfDischarge.trim(),
+      final_destination: finalDestination.trim(),
+    };
+console.log('newClient',);
+
+    try {
+
+      const errors = validateClientData(newClient);
+
+      if (Object.keys(errors).length > 0) {
+        Alert.alert('Validation Error', Object.values(errors)[0]);
+        return;
+      }
+      await dispatch(addClientAsync(newClient)).unwrap();
+
+      Alert.alert('Success', 'Client added successfully');
+      navigation.goBack();
+    } catch (err) {
+      console.error('Add client error:', err);
+      Alert.alert('Error', err?.message || 'Failed to add client');
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerContainer}>
-     
-        <View style={{ flex: 1 }}>
-          <Text style={styles.heading}>ADD A NEW CLIENT</Text>
-        </View>
-      </View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-       
+        <Text style={styles.heading}>ADD A NEW CLIENT</Text>
 
-        {selectedClientData && (
-          <View style={styles.clientCard}>
-            <View style={styles.clientRow}>
-              <Icon name="account" size={25} color="#333" />
-              <Text style={styles.clientText}>Name: {selectedClientData.client_name}</Text>
-            </View>
-            <View style={styles.clientRow}>
-              <Icon name="earth" size={25} color="#333" />
-              <Text style={styles.clientText}>Country: {selectedClientData.country}</Text>
-            </View>
-            <View style={styles.clientRow}>
-              <Icon name="tag" size={25} color="#333" />
-              <Text style={styles.clientText}>Marka: {selectedClientData.marka}</Text>
-            </View>
+        <Text style={styles.label}>Name</Text>
+        <TextInput
+          placeholder="Client Name"
+          style={styles.input}
+          value={clientName}
+          onChangeText={setClientName}
+          placeholderTextColor="#ccc"
+        />
 
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={() => {
-                navigation.goBack() 
-                             
-              }}
-            >
-              <Text style={styles.primaryButtonText}>
-                GO WITH {selectedClientData.client_name.toUpperCase()} ({selectedClientData.marka.toUpperCase()})
-              </Text>
-            </TouchableOpacity>
+        <Text style={styles.label}>Mark</Text>
+        <TextInput
+          placeholder="Marka"
+          style={styles.input}
+          value={clientMarka}
+          onChangeText={setClientMarka}
+          placeholderTextColor="#ccc"
+        />
 
-           
-          </View>
-        )}
-      </ScrollView>
-      {/* Add Client Modal */}
-      <Modal visible={modalVisible} transparent animationType="fade">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add New Client</Text>
-            <Text style={styles.label}>Name</Text>
-            <TextInput
-              placeholder="Client Name"
-              style={styles.input}
-              value={clientName}
-              onChangeText={setClientName}
-              placeholderTextColor={'#ccc'}
-            />
-            <Text style={styles.label}>Mark</Text>
-            <TextInput
-              placeholder="Marka"
-              style={styles.input}
-              value={clientMArka}
-              onChangeText={setClientMArka}
-              placeholderTextColor={'#ccc'}
-            />
-            <Text style={styles.label}>Country</Text>
-            <TextInput
-              placeholder="Country"
-              style={styles.input}
-              value={clientCountry}
-              onChangeText={setClientCountry}
-              placeholderTextColor={'#ccc'}
-            />
+        <Text style={styles.label}>Country</Text>
+        <TextInput
+          placeholder="Country"
+          style={styles.input}
+          value={clientCountry}
+          onChangeText={setClientCountry}
+          placeholderTextColor="#ccc"
+        />
 
-            <TouchableOpacity style={styles.primaryButton} onPress={handleAddClient}>
-              <Text style={styles.primaryButtonText}>Submit</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.deleteButton} onPress={() => navigation.goBack()}>
-              <Text style={styles.deleteButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
+        <Text style={styles.label}>Address</Text>
+        <TextInput
+          placeholder="Address"
+          style={styles.input}
+          value={address}
+          onChangeText={setAddress}
+          placeholderTextColor="#ccc"
+        />
+
+        <Text style={styles.label}>Vessel Type</Text>
+        <Dropdown
+          data={vesselType}
+          labelField="label"
+          valueField="value"
+          placeholder="Select Vessel Type"
+          value={vesselNo}
+          onChange={(item) => setVesselNo(item)}
+          style={styles.dropdown}
+          disable={loading}
+          placeholderStyle={{ color: '#999' }}
+          selectedTextStyle={{ color: '#000' }}
+          itemTextStyle={{ color: '#000' }}
+        />
+
+        <Text style={styles.label}>Port Of Loding</Text>
+        <TextInput
+          placeholder="Port Of Loding"
+          style={styles.input}
+          value={portOfLoading}
+          onChangeText={setPortOfLoading}
+          placeholderTextColor="#ccc"
+        />
+
+        <Text style={styles.label}>Terms Of Payment</Text>
+        <TextInput
+          placeholder="Terms Of Payment"
+          style={styles.input}
+          value={termsOfPayment}
+          onChangeText={setTermsOfPayment}
+          placeholderTextColor="#ccc"
+        />
+
+        <Text style={styles.label}>Delivery Terms</Text>
+        <TextInput
+          placeholder="Delivery Terms"
+          style={styles.input}
+          value={deliveryTerms}
+          onChangeText={setDeliveryTerms}
+          placeholderTextColor="#ccc"
+        />
+
+        <Text style={styles.label}>Port Of Discharge</Text>
+        <TextInput
+          placeholder="Port Of Discharge"
+          style={styles.input}
+          value={portOfDischarge}
+          onChangeText={setPortOfDischarge}
+          placeholderTextColor="#ccc"
+        />
+
+        <Text style={styles.label}>Final Destination</Text>
+        <TextInput
+          placeholder="Final Destination"
+          style={styles.input}
+          value={finalDestination}
+          onChangeText={setFinalDestination}
+          placeholderTextColor="#ccc"
+        />
+
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={[styles.button, styles.deleteButton]}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.buttonText}>Cancel</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, styles.primaryButton]}
+            onPress={handleAddClient}
+          >
+            <Text style={styles.buttonText}>Submit</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
+      </ScrollView>
     </View>
   );
 };
@@ -158,27 +235,15 @@ const newClientKey = generateKey(newClient);
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#012B4B',
-  },
-  headerContainer:{
-    marginBottom: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingTop: 20,
-  },
-  menuButton: {
-    marginLeft: 15
+    padding: 15,
+    backgroundColor: '#fff',
   },
   heading: {
     fontSize: 22,
-    fontWeight: "bold",
-    textAlign: "center",
-    color: "#fff"
-  },
-  scrollContent: {
-    paddingBottom: 40,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: '#000',
+    marginBottom: 20,
   },
   label: {
     fontSize: 16,
@@ -194,65 +259,6 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     marginBottom: 20,
   },
-  primaryButton: {
-    backgroundColor: '#007BFF',
-    borderRadius: 6,
-    paddingVertical: 15,
-    marginTop: 10,
-    alignItems: 'center',
-    marginBottom: 10
-  },
-  primaryButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  deleteButton: {
-    backgroundColor: '#FF3B30',
-    borderRadius: 6,
-    paddingVertical: 12,
-    marginTop: 10,
-    alignItems: 'center',
-    marginBottom: 10
-  },
-  deleteButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  clientCard: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 10,
-    marginTop: 20,
-    elevation: 3,
-  },
-  clientRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    gap: 10,
-  },
-  clientText: {
-    fontSize: 18,
-    color: '#333',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#222',
-  },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -263,9 +269,28 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: '#000',
   },
-  errorText: {
-    color: 'red',
-    marginTop: 5,
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  button: {
+    flex: 1,
+    borderRadius: 6,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  primaryButton: {
+    backgroundColor: '#007BFF',
+  },
+  deleteButton: {
+    backgroundColor: '#FF3B30',
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 

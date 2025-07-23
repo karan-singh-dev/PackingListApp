@@ -28,15 +28,15 @@ const ClientSelection = () => {
   const [confirmClientName, setConfirmClientName] = useState('');
 
 
-   useFocusEffect(
-      useCallback(() => {
-         dispatch(fetchClients());
-         console.log('clients',clients);
-        
-         
-      }, [dispatch])
-    );
-  
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(fetchClients());
+      console.log('clients', clients);
+
+
+    }, [dispatch])
+  );
+
 
   const handleAddClient = async () => {
     if (!clientName.trim() || !clientCountry.trim() || !clientMArka.trim()) {
@@ -92,7 +92,7 @@ const ClientSelection = () => {
     setSelectedClientKey(clientKey);
     const selected = clients.find(c => generateKey(c) === clientKey);
 
-  
+
   };
 
   const selectedClientData = clients.find(c => generateKey(c) === selectedClientKey);
@@ -100,7 +100,7 @@ const ClientSelection = () => {
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-     
+
         <View style={{ flex: 1 }}>
           <Text style={styles.heading}>Client Details</Text>
         </View>
@@ -116,16 +116,15 @@ const ClientSelection = () => {
           labelField="label"
           valueField="value"
           placeholder={loading ? 'Loading...' : 'Select client'}
-          // placeholderTextColor={'#000'}
           value={selectedClientKey}
           onChange={(item) => handleClientSelection(item.value)}
           style={styles.dropdown}
           disable={loading}
           keyExtractor={(item) => item.value}
-    textStyle={{ color: '#000' }}
-  selectedTextStyle={{ color: '#000' }}
-  placeholderStyle={{ color: '#000' }}
-  itemTextStyle={{ color: '#000' }} 
+          textStyle={{ color: '#000' }}
+          selectedTextStyle={{ color: '#000' }}
+          placeholderStyle={{ color: '#000' }}
+          itemTextStyle={{ color: '#000' }}
         />
 
         {error && <Text style={styles.errorText}>Error: {error}</Text>}
@@ -133,7 +132,7 @@ const ClientSelection = () => {
           <Text style={styles.errorText}>No clients found. Add one to start.</Text>
         )}
 
-       
+
 
         {selectedClientData && (
           <View style={styles.clientCard}>
@@ -153,8 +152,8 @@ const ClientSelection = () => {
             <TouchableOpacity
               style={styles.primaryButton}
               onPress={() => {
-                dispatch(setSelectedClient(selectedClientData)); 
-                             
+                dispatch(setSelectedClient(selectedClientData));
+
               }}
             >
               <Text style={styles.primaryButtonText}>
@@ -177,7 +176,7 @@ const ClientSelection = () => {
             {selectedClientData ? (
               <>
                 <Text style={styles.modalTitle}>Confirm Deletion</Text>
-                <Text style={{ marginBottom: 10,color:'#000' }}>
+                <Text style={{ marginBottom: 10, color: '#000' }}>
                   Type "{selectedClientData.client_name}" to confirm deletion.
                 </Text>
                 <TextInput
@@ -207,7 +206,7 @@ const ClientSelection = () => {
       </Modal>
 
 
-     
+
     </View>
   );
 };
@@ -221,7 +220,7 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#012B4B',
   },
-  headerContainer:{
+  headerContainer: {
     marginBottom: 30,
     flexDirection: 'row',
     alignItems: 'center',
@@ -253,7 +252,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 15,
     marginBottom: 20,
-    
+
   },
   primaryButton: {
     backgroundColor: '#007BFF',
