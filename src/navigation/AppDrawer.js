@@ -9,7 +9,7 @@ import AddStock from '../screens/AddStock';
 import StockList from '../screens/StockList';
 import OrderUpload from '../screens/OrderUpload';
 import DisplayPackingList from '../screens/PackingList';
-import withStack from './withStack';
+
 import Invoicestack from '../screens/inviices/Navigation/Invoicestack';
 import CommercialInvoice from '../screens/inviices/CommercialInvoice';
 import PerformaInvoice from '../screens/inviices/PerformaInvoice';
@@ -21,7 +21,7 @@ export default function AppDrawer() {
         <Drawer.Navigator screenOptions={{ headerShown: false, }} initialRouteName="Home">
             <Drawer.Screen
                 name="Home"
-                component={withStack(Home)}
+                component={Home}
                 options={{
                     drawerLabel: 'Home',
                     drawerIcon: ({ color, size }) => (
@@ -42,7 +42,7 @@ export default function AppDrawer() {
 
             <Drawer.Screen
                 name="Estimate"
-                component={withStack(Estimate)}
+                component={Estimate}
                 options={{
                     drawerLabel: 'Estimate',
                     drawerIcon: ({ color, size }) => (
@@ -52,7 +52,7 @@ export default function AppDrawer() {
             />
             <Drawer.Screen
                 name="OrderUpload"
-                component={withStack(OrderUpload)}
+                component={OrderUpload}
                 options={{
                     drawerLabel: 'Order Upload',
                     drawerIcon: ({ color, size }) => (
@@ -62,7 +62,7 @@ export default function AppDrawer() {
             />
             <Drawer.Screen
                 name="AddStock"
-                component={withStack(AddStock)}
+                component={AddStock}
                 options={{
                     drawerLabel: 'Add Stock',
                     drawerIcon: ({ color, size }) => (
@@ -72,7 +72,7 @@ export default function AppDrawer() {
             />
             <Drawer.Screen
                 name="StockList"
-                component={withStack(StockList)}
+                component={StockList}
                 options={{
                     drawerLabel: 'Stock List',
                     drawerIcon: ({ color, size }) => (
@@ -82,7 +82,7 @@ export default function AppDrawer() {
             />
             <Drawer.Screen
                 name="PackingList"
-                component={withStack(DisplayPackingList)}
+                component={DisplayPackingList}
                 options={{
                     drawerLabel: 'Packing List',
                     drawerIcon: ({ color, size }) => (
@@ -90,26 +90,7 @@ export default function AppDrawer() {
                     ),
                 }}
             />
-             {/* <Drawer.Screen
-                name="CommercialInvoice"
-                component={CommercialInvoice}
-                options={{
-                    headerShown:false,
-                    drawerIcon: ({ color, size }) => (
-                        <Icon name="clipboard-list-outline" color={color} size={size} />
-                    ),
-                }}
-            />
-             <Drawer.Screen
-                name="PerformaInvoice"
-                component={PerformaInvoice}
-                options={{
-                     headerShown:false,
-                    drawerIcon: ({ color, size }) => (
-                        <Icon name="clipboard-list-outline" color={color} size={size} />
-                    ),
-                }}
-            /> */}
+             
            
         </Drawer.Navigator>
     );

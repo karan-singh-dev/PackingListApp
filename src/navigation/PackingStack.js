@@ -9,8 +9,6 @@ import RowPackingList from '../screens/RowPackingList';
 import DisplayPackingList from '../screens/PackingList';
 import SeperatePacking from '../components/SeperatePacking';
 import MixPacking from '../components/MixPacking';
-import PerformaInvoice from '../screens/inviices/PerformaInvoice';
-import CommercialInvoice from '../screens/inviices/CommercialInvoice';
 import QRScannerScreen from '../components/Scanner';
 
 const Stack = createNativeStackNavigator();
@@ -28,9 +26,6 @@ export default function PackingStack() {
       <Stack.Screen name="QRScannerScreen" component={QRScannerScreen} />
       <Stack.Screen name="SeperatePacking" component={SeperatePacking} />
       <Stack.Screen name="MixPacking" component={MixPacking} />
-{/*       
-                    <Stack.Screen name="CommercialInvoice" component={CommercialInvoice} />
-                  <Stack.Screen name="PerformaInvoice" component={PerformaInvoice} /> */}
     </Stack.Navigator>
   );
 }
