@@ -21,18 +21,13 @@ const Checklist = ({ name, onProceed }) => {
             <View style={{ flex: 1, justifyContent: 'center' }}>
                 {name.map(key => (
                     <View key={key} style={styles.checkboxRow}>
-                        <CheckBox
-                            value={!!checkedItems[key]}
-                            onValueChange={() =>
-                                setCheckedItems(prev => ({ ...prev, [key]: !prev[key] }))
-                            }
+                        <CheckBox value={!!checkedItems[key]}  onValueChange={() => setCheckedItems(prev => ({ ...prev, [key]: !prev[key] })) }
                             tintColors={{ true: '#00ff00', false: '#fff' }}
                         />
                         <Text style={styles.label}>{key}</Text>
                     </View>
                 ))}
             </View>
-
             <Button
                 title="Proceed"
                 onPress={onProceed}

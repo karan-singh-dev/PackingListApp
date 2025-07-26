@@ -12,15 +12,10 @@ import {
   Platform,
   BackHandler,
 } from "react-native";
-import Icon from 'react-native-vector-icons/Feather';
-
-import { InteractionManager } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
 import {
   fetchPackingData,
-  setNextCaseNumber,
-  setPackingType,
   submitPackingDetails,
 } from "../../redux/PackigListSlice";
 import API from "../components/API"; // 
@@ -64,16 +59,11 @@ const MixPacking = () => {
   const selectedClient = useSelector((state) => state.clientData.selectedClient);
   const client = selectedClient.client_name;
   const marka = selectedClient.marka;
-
-  const [Back, setBack] = useState(false);
-  const [choiceChange, setchoiceChange] = useState(false);
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const route = useRoute();
 
   const { nextCaseNumber, packing, stock, loading, estimateList, PackingType } = useSelector((state) => state.packing);
-
-  console.log(estimateList, '===========estimateList')
 
   const [updates, setupdates] = useState({
     gross_wt: 0,
@@ -88,22 +78,11 @@ const MixPacking = () => {
   const [netWt, setNetWt] = useState([]);
   const [selectedOption, setSelectedOption] = useState("");
   const [customInput, setCustomInput] = useState("");
-
   const passedData = useMemo(() => route.params?.item || "", [route.params]);
-
-
-
-
-
   useEffect(() => {
     dispatch(fetchPackingData({ client, marka }));
     setForm((prev) => ({ ...prev, case_no_start: nextCaseNumber.toString() }));
-
   }, [passedData]);
-
-
-
-
 
   useEffect(() => {
     if (passedData) {
@@ -129,7 +108,6 @@ const MixPacking = () => {
   useEffect(() => {
     if (form.part_no && estimateList.length) {
       const item = estimateList.find((e) => e.part_no === form.part_no);
-      console.log('itm==============', item)
       if (item) {
         setForm((prev) => ({
           ...prev,
@@ -226,7 +204,7 @@ const MixPacking = () => {
       console.log("Net weight posted successfully:", res.data);
     } catch (err) {
       console.error("Net weight post error:", err.response?.data || err.message);
-      Alert.alert("Error", err.response?.data?.error || "Error posting net weight");
+      console.warn("Error", err.response?.data?.error || "Error posting net weight");
     }
   };
 

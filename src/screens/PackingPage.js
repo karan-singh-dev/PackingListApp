@@ -26,6 +26,18 @@ export default function PackingPage({ navigation }) {
       icon: 'upload-cloud',
     },
     {
+      title: 'Order Update',
+      screen: 'OrderUpdate',
+      color: '#2196F3',
+      icon: 'upload-cloud',
+    },
+    {
+      title: 'Order',
+      screen: 'UploadedOrder',
+      color: '#2196F3',
+      icon: 'upload-cloud',
+    },
+    {
       title: 'Estimate List',
       screen: 'Estimate',
       color: '#2196F3',

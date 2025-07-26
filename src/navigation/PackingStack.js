@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import PackingPage from '../screens/PackingPage';
@@ -10,6 +11,8 @@ import DisplayPackingList from '../screens/PackingList';
 import SeperatePacking from '../components/SeperatePacking';
 import MixPacking from '../components/MixPacking';
 import QRScannerScreen from '../components/Scanner';
+import UpdateOrder from '../screens/UpdateOrder';
+import UploadedOrder from '../screens/UploadedOrder';
 
 const Stack = createNativeStackNavigator();
 
@@ -26,6 +29,8 @@ export default function PackingStack() {
       <Stack.Screen name="QRScannerScreen" component={QRScannerScreen} />
       <Stack.Screen name="SeperatePacking" component={SeperatePacking} />
       <Stack.Screen name="MixPacking" component={MixPacking} />
+      <Stack.Screen name="OrderUpdate" component={UpdateOrder} />
+         <Stack.Screen name="UploadedOrder" component={UploadedOrder} />
     </Stack.Navigator>
   );
 }

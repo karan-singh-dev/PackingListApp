@@ -14,6 +14,8 @@ import CreateClient from './src/components/CreateClients';
 import Invoicestack from './src/screens/inviices/Navigation/Invoicestack';
 import PerformaInvoice from './src/screens/inviices/PerformaInvoice';
 import CommercialInvoice from './src/screens/inviices/CommercialInvoice';
+import SeperatePacking from './src/components/SeperatePacking';
+import MixPacking from './src/components/MixPacking';
 
 const Stack = createNativeStackNavigator();
 
@@ -43,6 +45,9 @@ export default function AppNavigator() {
               <Stack.Screen name="CreateClient" component={CreateClient} />
               <Stack.Screen name="CommercialInvoice" component={CommercialInvoice} />
             <Stack.Screen name="PerformaInvoice" component={PerformaInvoice} />
+            <Stack.Screen name="SeperatePacking" component={SeperatePacking} />
+            <Stack.Screen name="MixPacking" component={MixPacking} />
+
             </>
           )}
         </Stack.Navigator>

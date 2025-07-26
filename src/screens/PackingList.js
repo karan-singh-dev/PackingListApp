@@ -38,7 +38,6 @@ const DisplayPackingList = () => {
     { label: "Description", key: "description", width: 200 },
     { label: "HSN No", key: "hsn_no", width: 80 },
     { label: "GST", key: "gst", width: 60 },
-    { label: "Brand", key: "brand_name", width: 60 },
     { label: "Total Qty", key: "total_packing_qty", width: 100 },
     { label: "MRP (Invoice)", key: "mrp_invoice", width: 110 },
     { label: "Box MRP", key: "mrp_box", width: 100 },

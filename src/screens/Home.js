@@ -16,7 +16,6 @@ const Home = ({ navigation }) => {
 useFocusEffect(
   useCallback(() => {
     dispatch(resetClients());
-   
   }, [dispatch])
 );
 

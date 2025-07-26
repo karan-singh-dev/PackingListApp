@@ -67,8 +67,7 @@ const SeperatePacking = () => {
   const [customInput, setCustomInput] = useState("");
   const { nextCaseNumber, packing, stock, loading, estimateList } = useSelector((state) => state.packing);
 
-  // console.log('nextCaseNumber', nextCaseNumber)
-
+  
 
 
   const [form, setForm] = useState(initialForm);
@@ -226,7 +225,6 @@ const SeperatePacking = () => {
         Alert.alert("Invalid Input", "Net weight must be a valid number.");
         return;
       }
-
       const res = await API.post(
         "api/packing/net-weight/",
         {
@@ -269,11 +267,8 @@ const SeperatePacking = () => {
         handleBackPress();
         return false;
       };
-
       const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
       const unsubscribe = navigation.addListener('beforeRemove', () => {
-
         handleBackPress();
       });
 
@@ -287,7 +282,6 @@ const SeperatePacking = () => {
 
 
   const handleSubmit = async () => {
-    console.log('total pcking qty',form.total_packing_qty);
     
     if (!form.total_packing_qty >= form.packed_in_plastic_bag){
          Alert.alert('Totalpacking qty can not less then packed in plastic bag')

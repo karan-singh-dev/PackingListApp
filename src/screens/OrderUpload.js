@@ -23,54 +23,17 @@ import Checklist from '../components/Checklist';
 const OrderUpload = ({ navigation }) => {
   const { height: windowHeight } = useWindowDimensions();
   const selectedClient = useSelector((state) => state.clientData.selectedClient);
-
-
-
   const marka = selectedClient.marka;
   const client = selectedClient.client_name;
-
   const [headers, setHeaders] = useState([]);
   const [rows, setRows] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [proceeded, setProceeded] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [showEstimateModal, setShowEstimateModal] = useState(false);
-  const [selectedGSTs, setSelectedGSTs] = useState([]);
-  const [gstValue, setGstValue] = useState(null);
-  const [rupees, setRupees] = useState(0);
 
 
-  const gstOptions = [
-    { label: '5%', value: '5' },
-    { label: '12%', value: '12' },
-    { label: '18%', value: '18' },
-    { label: '28%', value: '28' },
-  ];
-
-  const handleGstSelect = (value) => {
-    const alreadySelected = selectedGSTs.find(item => item.gst === value);
-    if (!alreadySelected) {
-      setSelectedGSTs([...selectedGSTs, { gst: value, discount: '' }]);
-    }
-    setGstValue(null);
-  };
-
-
-  const handleDiscountChange = (index, value) => {
-    const updated = [...selectedGSTs];
-    updated[index].discount = value;
-    setSelectedGSTs(updated);
-  };
-
-  const handleRemoveGst = (index) => {
-    const updated = [...selectedGSTs];
-    updated.splice(index, 1);
-    setSelectedGSTs(updated);
-  };
-
-
-
+ 
   const handleFilePick = async () => {
 
     try {
@@ -153,7 +116,6 @@ const OrderUpload = ({ navigation }) => {
   };
 
   const generateEstimate = async () => {
-    console.log(client, marka, selectedGSTs, rupees)
 
     try {
        setShowEstimateModal(false)
@@ -161,8 +123,6 @@ const OrderUpload = ({ navigation }) => {
       const res = await API.post('/api/asstimate/genrate/', {
         client_name: client,
         marka: marka,
-        gst_details: selectedGSTs,
-        rupees: parseInt(rupees)
       });
 
       if (res.status === 200) {
@@ -267,7 +227,7 @@ const OrderUpload = ({ navigation }) => {
                 <Text style={styles.buttonText}>Upload File</Text>
               </TouchableOpacity>) : (<TouchableOpacity
                 style={[styles.uploadButton, { backgroundColor: '#e74d10ff' }]}
-                onPress={() => setShowEstimateModal(true)}
+                onPress={generateEstimate}
               >
                 <Text style={styles.uploadButtonText}>Generate Estimate</Text>
               </TouchableOpacity>
@@ -283,81 +243,6 @@ const OrderUpload = ({ navigation }) => {
               <Text style={{ marginTop: 10, color: '#fff' }}>Please wait...</Text>
             </View>
           )}
-
-          <Modal visible={showEstimateModal} transparent animationType="slide">
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalheading}>Tax & Discount Detail</Text>
-                {selectedGSTs.map((item, index) => (
-                  <View key={index} style={{ flexDirection: 'row', marginTop: 10, gap: 10 }}>
-                    <View style={{ flex: 1 }}>
-                      <Text>Gst </Text>
-                      <TextInput
-                        style={[styles.input]}
-                        value={item.gst}
-                        editable={false}
-                        keyboardType="numeric"
-                      />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text>Discount</Text>
-                      <TextInput
-                        style={[styles.input,]}
-                        placeholder="Discount %"
-                        keyboardType="numeric"
-                        placeholderTextColor={'#8a8686ff'}
-                        value={item.discount}
-                        onChangeText={(text) => handleDiscountChange(index, text)}
-                      />
-                    </View>
-                    <View style={{ justifyContent: 'center', marginTop: 20 }}>
-                      <TouchableOpacity onPress={() => handleRemoveGst(index)} style={styles.removeIcon}>
-                        <Icon name="close-circle" size={24} color="#dc3545" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))}
-
-
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
-
-                  <Dropdown
-                    style={styles.dropdown}
-                    data={gstOptions.filter(opt => !selectedGSTs.some(sel => sel.gst === opt.value))}
-                    labelField="label"
-                    valueField="value"
-                    placeholder="Add GST  +"
-                    value={gstValue}
-                    onChange={(item) => handleGstSelect(item.value)}
-                    renderRightIcon={() => null}
-                  />
-                </View>
-                <View style={styles.dollarmain}>
-                  <Text style={[styles.modalheading, { marginTop: 20 }]}>Conversion Rate</Text>
-                  <View style={styles.dollarBox}>
-                    <Text style={{ fontSize: 18 }}>1 Dollar($) :</Text>
-                    <TextInput
-                      style={[styles.input, { flex: 1 }]}
-                      value={rupees}
-                      placeholder='Rupees (₹)'
-                      placeholderTextColor={'#6e6d6dff'}
-                      keyboardType="numeric"
-                      onChangeText={(text) => setRupees(text)}
-                    />
-                  </View>
-                </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
-                  <TouchableOpacity onPress={() => setShowEstimateModal(false)}>
-                    <Text style={[styles.pickButtonText, { color: 'red' }]}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={generateEstimate}>
-                    <Text style={[styles.pickButtonText, { backgroundColor: '#315ff8ff' }]}>Submit</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
-
         </>)}
     </View>)
   );

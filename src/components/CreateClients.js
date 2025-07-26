@@ -6,7 +6,7 @@ import { Dropdown } from 'react-native-element-dropdown';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import { addClientAsync } from '../../redux/ClientDataSlice';
-
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 const CreateClient = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
@@ -24,6 +24,39 @@ const CreateClient = () => {
   const [deliveryTerms, setDeliveryTerms] = useState('');
   const [portOfDischarge, setPortOfDischarge] = useState('');
   const [finalDestination, setFinalDestination] = useState('');
+  const [selectedGSTs, setSelectedGSTs] = useState([]);
+  const [gstValue, setGstValue] = useState(null);
+  const [rupees, setRupees] = useState(0);
+
+
+  const gstOptions = [
+    { label: '5%', value: '5' },
+    { label: '12%', value: '12' },
+    { label: '18%', value: '18' },
+    { label: '28%', value: '28' },
+  ];
+
+  const handleGstSelect = (value) => {
+    const alreadySelected = selectedGSTs.find(item => item.gst === value);
+    if (!alreadySelected) {
+      setSelectedGSTs([...selectedGSTs, { gst: value, discount: '' }]);
+    }
+    setGstValue(null);
+  };
+
+
+  const handleDiscountChange = (index, value) => {
+    const updated = [...selectedGSTs];
+    updated[index].discount = value;
+    setSelectedGSTs(updated);
+  };
+
+  const handleRemoveGst = (index) => {
+    const updated = [...selectedGSTs];
+    updated.splice(index, 1);
+    setSelectedGSTs(updated);
+  };
+
 
   const vesselType = [
     { label: 'Sea', value: 'Sea' },
@@ -70,15 +103,7 @@ const CreateClient = () => {
   };
 
 
-
-
   const handleAddClient = async () => {
-
-
-
-
-
-
     const newClient = {
       client_name: clientName.trim(),
       country: clientCountry.trim(),
@@ -90,8 +115,10 @@ const CreateClient = () => {
       delivery_terms: deliveryTerms.trim(),
       port_of_discharge: portOfDischarge.trim(),
       final_destination: finalDestination.trim(),
+      gst: selectedGSTs,
+      rupees: parseInt(rupees)
     };
-console.log('newClient',);
+    console.log('newClient',);
 
     try {
 
@@ -211,22 +238,72 @@ console.log('newClient',);
           onChangeText={setFinalDestination}
           placeholderTextColor="#ccc"
         />
+          <Text style={styles.label}>Add GST details</Text>
+        {selectedGSTs.map((item, index) => (
+          <View key={index} style={{ flexDirection: 'row', marginTop: 10, gap: 10 }}>
+            <View style={{ flex: 1 }}>
+              <Text>Gst </Text>
+              <TextInput
+                style={[styles.gstinput]}
+                value={item.gst}
+                editable={false}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text>Discount</Text>
+              <TextInput
+                style={[styles.gstinput,]}
+                placeholder="Discount %"
+                keyboardType="numeric"
+                placeholderTextColor={'#8a8686ff'}
+                value={item.discount}
+                onChangeText={(text) => handleDiscountChange(index, text)}
+              />
+            </View>
+            <View style={{ justifyContent: 'center', marginTop: 20 }}>
+              <TouchableOpacity onPress={() => handleRemoveGst(index)} style={styles.removeIcon}>
+                <Icon name="close-circle" size={24} color="#dc3545" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
 
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={[styles.button, styles.deleteButton]}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.buttonText}>Cancel</Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.primaryButton]}
-            onPress={handleAddClient}
-          >
-            <Text style={styles.buttonText}>Submit</Text>
-          </TouchableOpacity>
+        <View style={{}}>
+        
+          <Dropdown
+            style={styles.dropdown}
+            data={gstOptions.filter(opt => !selectedGSTs.some(sel => sel.gst === opt.value))}
+            labelField="label"
+            valueField="value"
+            placeholder="Add Tax & Discount Detail  +"
+            
+            value={gstValue}
+            onChange={(item) => handleGstSelect(item.value)}
+            renderRightIcon={() => null}
+          />
         </View>
+        <View style={styles.dollarmain}>
+          <Text style={[styles.modalheading]}>Conversion Rate</Text>
+          <View style={styles.dollarBox}>
+            <Text style={{ fontSize: 16 }}>1 Dollar($) :</Text>
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              value={rupees}
+              placeholder='Rupees (₹)'
+              placeholderTextColor={'#6e6d6dff'}
+              keyboardType="numeric"
+              onChangeText={(text) => setRupees(text)}
+            />
+          </View>
+        </View>
+        <TouchableOpacity
+          style={[styles.button, styles.primaryButton]}
+          onPress={handleAddClient}
+        >
+          <Text style={styles.buttonText}>Submit</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -250,15 +327,53 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 8,
   },
-  dropdown: {
+
+  modalContent: {
+    width: '90%',
     backgroundColor: '#fff',
-    borderRadius: 8,
+    padding: 20,
+    borderRadius: 10,
+  },
+  dropdown: {
     borderColor: '#ccc',
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 15,
-    marginBottom: 20,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginVertical: 20,
+    width:'65%'
+
   },
+  gstinput: {
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginTop: 5,
+  },
+  label: {
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  removeIcon: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  modalheading: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  dollarBox: {
+    flexDirection: 'row',
+    marginTop: 10,
+    gap: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20
+  },
+
+
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
