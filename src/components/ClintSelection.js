@@ -34,7 +34,7 @@ const ClientSelection = () => {
 
     }, [dispatch])
   );
-
+ console.log('clients', clients);
 
   const handleAddClient = async () => {
     if (!clientName.trim() || !clientCountry.trim() || !clientMArka.trim()) {

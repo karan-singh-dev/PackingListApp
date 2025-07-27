@@ -32,26 +32,24 @@ export default function AppNavigator() {
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {showSplash ? (
-            <Stack.Screen name="Splash" component={Splash} />
-          ) : Token == null ? (
-            <Stack.Screen name="LogIn" component={LogIn} />
-          ) : (
-            <>
-              <Stack.Screen name="AppDrawer" component={AppDrawer} />
-              <Stack.Screen name="CreateClient" component={CreateClient} />
-              <Stack.Screen name="CommercialInvoice" component={CommercialInvoice} />
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {showSplash ? (
+          <Stack.Screen name="Splash" component={Splash} />
+        ) : Token == null ? (
+          <Stack.Screen name="LogIn" component={LogIn} />
+        ) : (
+          <>
+            <Stack.Screen name="AppDrawer" component={AppDrawer} />
+            <Stack.Screen name="CreateClient" component={CreateClient} />
+            <Stack.Screen name="CommercialInvoice" component={CommercialInvoice} />
             <Stack.Screen name="PerformaInvoice" component={PerformaInvoice} />
             <Stack.Screen name="SeperatePacking" component={SeperatePacking} />
             <Stack.Screen name="MixPacking" component={MixPacking} />
 
-            </>
-          )}
-        </Stack.Navigator>
-      </NavigationContainer>
-    </GestureHandlerRootView>
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }

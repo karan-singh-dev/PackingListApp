@@ -60,8 +60,7 @@ export default function AppDrawer() {
                     ),
                 }}
             />
-            <Drawer.Screen
-                name="AddStock"
+            <Drawer.Screen        name="AddStock"
                 component={AddStock}
                 options={{
                     drawerLabel: 'Add Stock',
