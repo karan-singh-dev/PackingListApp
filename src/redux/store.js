@@ -1,8 +1,8 @@
 // redux/store.js
 import { configureStore } from '@reduxjs/toolkit';
-import packingReducer from './PackigListSlice';
-import loginReducer from './LoginSlice'
-import clientDataReducer from './ClientDataSlice'
+import packingReducer from './slices/PackigListSlice';
+import loginReducer from './slices/LoginSlice'
+import clientDataReducer from './slices/ClientDataSlice'
 
 const store = configureStore({
   reducer: {

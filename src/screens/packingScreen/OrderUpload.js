@@ -15,10 +15,10 @@ import { pick, types } from '@react-native-documents/picker';
 import { Dropdown } from 'react-native-element-dropdown';
 import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
-import API from '../components/API';
+import API from '../../components/API';
 import { useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import Checklist from '../components/Checklist';
+import Checklist from '../../components/Checklist';
 
 const OrderUpload = ({ navigation }) => {
   const { height: windowHeight } = useWindowDimensions();

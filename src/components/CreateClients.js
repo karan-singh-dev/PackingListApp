@@ -5,7 +5,7 @@ import {
 import { Dropdown } from 'react-native-element-dropdown';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
-import { addClientAsync } from '../../redux/ClientDataSlice';
+import { addClientAsync } from '../redux/slices/ClientDataSlice';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 const CreateClient = () => {
   const dispatch = useDispatch();

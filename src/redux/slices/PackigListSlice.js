@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import API from '../src/components/API'; // centralized API instance
+import API from '../../components/API'; // centralized API instance
 
 const ENDPOINTS = {
   STOCK: '/api/packing/stock/',

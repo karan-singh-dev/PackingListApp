@@ -6,16 +6,24 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSelector } from 'react-redux';
-import LogIn from './src/screens/LogIn';
-import Splash from './src/screens/Splash';
-import ClientSelection from './src/components/ClintSelection';
-import AppDrawer from './src/navigation/AppDrawer';
-import CreateClient from './src/components/CreateClients';
-import Invoicestack from './src/screens/inviices/Navigation/Invoicestack';
-import PerformaInvoice from './src/screens/inviices/PerformaInvoice';
-import CommercialInvoice from './src/screens/inviices/CommercialInvoice';
-import SeperatePacking from './src/components/SeperatePacking';
-import MixPacking from './src/components/MixPacking';
+import LogIn from '../screens/packingScreen/LogIn';
+import Splash from '../screens/packingScreen/Splash';
+import AppDrawer from './AppDrawer';
+import CreateClient from '../components/CreateClients';
+import OrderUpload from '../screens/packingScreen/OrderUpload';
+import Estimate from '../screens/packingScreen/Esstimate';
+import AddStock from '../screens/packingScreen/AddStock';
+import StockList from '../screens/packingScreen/StockList';
+import RowPackingList from '../screens/packingScreen/RowPackingList';
+import DisplayPackingList from '../screens/packingScreen/PackingList';
+import UpdateOrder from '../screens/packingScreen/UpdateOrder';
+import UploadedOrder from '../screens/packingScreen/UploadedOrder';
+import Home from '../screens/packingScreen/Home';
+import CommercialInvoice from '../screens/invoiceScreen/CommercialInvoice';
+import PerformaInvoice from '../screens/invoiceScreen/PerformaInvoice';
+import QRScannerScreen from '../components/Scanner';
+import SeperatePacking from '../components/SeperatePacking';
+import MixPacking from '../components/MixPacking';
 
 const Stack = createNativeStackNavigator();
 
@@ -40,13 +48,14 @@ export default function AppNavigator() {
           <Stack.Screen name="LogIn" component={LogIn} />
         ) : (
           <>
+            <Stack.Screen name="Home" component={Home} />
             <Stack.Screen name="AppDrawer" component={AppDrawer} />
             <Stack.Screen name="CreateClient" component={CreateClient} />
             <Stack.Screen name="CommercialInvoice" component={CommercialInvoice} />
             <Stack.Screen name="PerformaInvoice" component={PerformaInvoice} />
+            <Stack.Screen name="QRScannerScreen" component={QRScannerScreen} />
             <Stack.Screen name="SeperatePacking" component={SeperatePacking} />
             <Stack.Screen name="MixPacking" component={MixPacking} />
-
           </>
         )}
       </Stack.Navigator>

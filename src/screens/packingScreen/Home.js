@@ -4,7 +4,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useDispatch, useSelector } from 'react-redux';
-import { resetClients } from '../../redux/ClientDataSlice';
+import { resetClients } from '../../redux/slices/ClientDataSlice';
 import { useFocusEffect } from '@react-navigation/native';
 
 
@@ -22,9 +22,7 @@ useFocusEffect(
     return (
         <View style={styles.container}>
             <View style={styles.headerContainer}>
-                <TouchableOpacity onPress={() => navigation.openDrawer()} style={[styles.menuButton,]}>
-                    <Icon name="menu" size={30} color="#fff" />
-                </TouchableOpacity>
+              
                 <View style={{ flex: 1 }}>
                     <Text style={styles.heading}>Export Invoice Maker</Text>
                 </View>
@@ -42,7 +40,7 @@ useFocusEffect(
                     <Text style={styles.menuText}>Proforma Invoice</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => navigation.navigate('Packing')} style={[styles.menuItem]}
+                <TouchableOpacity onPress={() => navigation.navigate('AppDrawer', { screen: 'PackingPage' })} style={[styles.menuItem]}
                 >
                     <MaterialIcons name="playlist-add-check" size={32} color="#fff" />
                     <Text style={styles.menuText}>Packing List</Text>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginUser } from '../../redux/LoginSlice';
+import { loginUser } from '../../redux/slices/LoginSlice';
 
 const LogIn = () => {
     const [username, setUsername] = useState('');

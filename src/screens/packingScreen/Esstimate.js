@@ -16,7 +16,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSelector } from 'react-redux';
 import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
-import API from '../components/API';
+import API from '../../components/API';
 import { useFocusEffect } from '@react-navigation/native';
 
 const windowHeight = Dimensions.get('window').height;

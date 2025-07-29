@@ -32,7 +32,10 @@ export default function QRScannerScreen({ navigation }) {
     console.log('📸 Scanned:', scannedValue);
 
     // Navigate back to RowPackingList with scannedCode
-    navigation.navigate('RowPackingList', { scannedCode: scannedValue });
+    // navigation.navigate('RowPackingList', { scannedCode: scannedValue });
+    navigation.navigate('AppDrawer', { screen: 'RowPackingList',
+       params: { scannedCode: scannedValue }
+    })
   };
 
   if (!allowed) return <View style={{ flex: 1, backgroundColor: 'black' }} />;

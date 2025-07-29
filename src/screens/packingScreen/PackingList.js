@@ -15,8 +15,8 @@ import {
 import { useSelector } from "react-redux";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import API from "../components/API";
-import { useExcelExporter } from "../components/useExcelExporter";
+import API from "../../components/API";
+import { useExcelExporter } from "../../components/useExcelExporter";
 
 const DisplayPackingList = () => {
   const [data, setData] = useState([]);

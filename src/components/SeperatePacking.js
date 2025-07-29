@@ -22,8 +22,8 @@ import {
   setNextCaseNumber,
   setPackingType,
   submitPackingDetails,
-} from "../../redux/PackigListSlice";
-import API from '../components/API';  // ✅ updated import
+} from "../redux/slices/PackigListSlice";
+import API from './API';  // ✅ updated import
 import { Dropdown } from 'react-native-element-dropdown';
 
 const initialForm = {
@@ -254,7 +254,8 @@ const SeperatePacking = () => {
         dispatch(setPackingType(null));
         console.log(res.data[res.data.length - 1].cbm)
       }
-      navigation.navigate("RowPackingList");
+    
+      navigation.navigate('AppDrawer', { screen: 'RowPackingList' })
     } catch (error) {
       console.error("Failed to fetch packing data:", error);
 
@@ -295,7 +296,7 @@ const SeperatePacking = () => {
       setForm(initialForm);
       handleNetwt();
       dispatch(setPackingType(null));
-      navigation.navigate("PackingList");
+     navigation.navigate('AppDrawer', { screen: 'PackingList' });
     } catch (error) {
       console.error("Packing submit error:", error);
       Alert.alert("Error", "Something went wrong.");

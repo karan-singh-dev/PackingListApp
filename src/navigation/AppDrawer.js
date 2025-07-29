@@ -1,96 +1,33 @@
 import React from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-
-import Home from '../screens/Home';
-import PackingStack from './PackingStack'; // ✅ Stack with internal hidden screens
-import Estimate from '../screens/Esstimate';
-import AddStock from '../screens/AddStock';
-import StockList from '../screens/StockList';
-import OrderUpload from '../screens/OrderUpload';
-import DisplayPackingList from '../screens/PackingList';
-
-import Invoicestack from '../screens/inviices/Navigation/Invoicestack';
-import CommercialInvoice from '../screens/inviices/CommercialInvoice';
-import PerformaInvoice from '../screens/inviices/PerformaInvoice';
+import Estimate from '../screens/packingScreen/Esstimate';
+import StockList from '../screens/packingScreen/StockList';
+import OrderUpload from '../screens/packingScreen/OrderUpload';
+import DisplayPackingList from '../screens/packingScreen/PackingList';
+import CustomDrawer from '../components/CustomDrawer';
+import UploadedOrder from '../screens/packingScreen/UploadedOrder';
+import PackingPage from '../screens/packingScreen/PackingPage';
+import RowPackingList from '../screens/packingScreen/RowPackingList';
+import UpdateOrder from '../screens/packingScreen/UpdateOrder';
+import AddStock from '../screens/packingScreen/AddStock';
 
 const Drawer = createDrawerNavigator();
 
 export default function AppDrawer() {
     return (
-        <Drawer.Navigator screenOptions={{ headerShown: false, }} initialRouteName="Home">
-            <Drawer.Screen
-                name="Home"
-                component={Home}
-                options={{
-                    drawerLabel: 'Home',
-                    drawerIcon: ({ color, size }) => (
-                        <Icon name="home-outline" color={color} size={size} />
-                    ),
-                }}
-            />
-            <Drawer.Screen
-                name="Packing"
-                component={PackingStack} // ← contains PackingPage inside it
-                options={{
-                    drawerLabel: 'Packing',
-                    drawerIcon: ({ color, size }) => (
-                        <Icon name="box" color={color} size={size} />
-                    ),
-                }}
-            />
-
-            <Drawer.Screen
-                name="Estimate"
-                component={Estimate}
-                options={{
-                    drawerLabel: 'Estimate',
-                    drawerIcon: ({ color, size }) => (
-                        <Icon name="file-document-outline" color={color} size={size} />
-                    ),
-                }}
-            />
-            <Drawer.Screen
-                name="OrderUpload"
-                component={OrderUpload}
-                options={{
-                    drawerLabel: 'Order Upload',
-                    drawerIcon: ({ color, size }) => (
-                        <Icon name="upload" color={color} size={size} />
-                    ),
-                }}
-            />
-            <Drawer.Screen        name="AddStock"
-                component={AddStock}
-                options={{
-                    drawerLabel: 'Add Stock',
-                    drawerIcon: ({ color, size }) => (
-                        <Icon name="plus-box" color={color} size={size} />
-                    ),
-                }}
-            />
-            <Drawer.Screen
-                name="StockList"
-                component={StockList}
-                options={{
-                    drawerLabel: 'Stock List',
-                    drawerIcon: ({ color, size }) => (
-                        <Icon name="format-list-bulleted" color={color} size={size} />
-                    ),
-                }}
-            />
-            <Drawer.Screen
-                name="PackingList"
-                component={DisplayPackingList}
-                options={{
-                    drawerLabel: 'Packing List',
-                    drawerIcon: ({ color, size }) => (
-                        <Icon name="clipboard-list-outline" color={color} size={size} />
-                    ),
-                }}
-            />
-             
-           
-        </Drawer.Navigator>
+        <Drawer.Navigator
+            drawerContent={(props) => <CustomDrawer {...props} />} // <-- use custom drawer
+            screenOptions={{ headerShown: false }} // hide default header if you want custom UI 
+        >
+            <Drawer.Screen name="PackingPage" component={PackingPage} />
+            <Drawer.Screen name="UploadedOrder" component={UploadedOrder} />
+            <Drawer.Screen name="OrderUpdate" component={UpdateOrder} />
+            <Drawer.Screen name="StockList" component={StockList} />
+            <Drawer.Screen name="AddStock" component={AddStock} />
+            <Drawer.Screen name="OrderUpload" component={OrderUpload} />
+            <Drawer.Screen name="RowPackingList" component={RowPackingList} />
+            <Drawer.Screen name="PackingList" component={DisplayPackingList} />
+            <Drawer.Screen name="Estimate" component={Estimate} />
+        </ Drawer.Navigator>
     );
 }

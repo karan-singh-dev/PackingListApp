@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import API from "../src/components/API"; // ✅ Use your Axios instance!
+import API from "../../components/API"; // ✅ Use your Axios instance!
 
 export const loginUser = createAsyncThunk(
     "login/loginUser",

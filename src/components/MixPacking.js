@@ -17,8 +17,8 @@ import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/nativ
 import {
   fetchPackingData,
   submitPackingDetails,
-} from "../../redux/PackigListSlice";
-import API from "../components/API"; // 
+} from "../redux/slices/PackigListSlice";
+import API from "./API"; // 
 import { Dropdown } from "react-native-element-dropdown";
 
 const initialForm = {
@@ -224,8 +224,8 @@ const MixPacking = () => {
         setupdates({});
         setShowFields(false);
         setForm(initialForm);
+        navigation.navigate('AppDrawer', { screen: 'PackingList' });
 
-        navigation.navigate('PackingList');
       }
     } catch (error) {
       console.log('API error details:', error?.response?.data || error?.message || error);
@@ -260,7 +260,7 @@ const MixPacking = () => {
         'Do you want to add more items to this case?',
         [
           { text: 'NO', onPress: () => { setShowFields(true) }, style: 'cancel' },
-          { text: 'YES', onPress: () => { setForm(initialForm), handleNetwt(), navigation.navigate('RowPackingList') } },
+          { text: 'YES', onPress: () => { setForm(initialForm), handleNetwt(), navigation.navigate('AppDrawer', { screen: 'RowPackingList' }) } },
         ],
         { cancelable: false }
       );

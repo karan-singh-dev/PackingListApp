@@ -14,8 +14,8 @@ import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSelector } from 'react-redux';
-import API from '../components/API';
-import Checklist from '../components/Checklist';
+import API from '../../components/API';
+import Checklist from '../../components/Checklist';
 
 
 const AddStock = ({ navigation }) => {

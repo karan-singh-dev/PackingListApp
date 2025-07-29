@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import API from '../components/API'; // Use your centralized API instance
+import API from '../../components/API'; // Use your centralized API instance
 
 const deviceHeight = Dimensions.get('window').height;
 

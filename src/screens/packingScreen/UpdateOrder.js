@@ -15,10 +15,10 @@ import {
 import { pick, types } from '@react-native-documents/picker';
 import XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
-import API from '../components/API';
+import API from '../../components/API';
 import { useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import Checklist from '../components/Checklist';
+import Checklist from '../../components/Checklist';
 
 const UpdateOrder = ({ navigation }) => {
     const { height: windowHeight } = useWindowDimensions();
@@ -160,7 +160,7 @@ const UpdateOrder = ({ navigation }) => {
                             <Icon name="menu" size={30} color="#000" />
                         </TouchableOpacity>
                         <View style={{ flex: 1 }}>
-                            <Text style={styles.heading}>Upload Order</Text>
+                            <Text style={styles.heading}>Update Order</Text>
                         </View>
                     </View>
                     {!selectedFile && (

@@ -17,8 +17,8 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 
-import API from '../components/API';
-import { setNextCaseNumber, setPackingType } from '../../redux/PackigListSlice';
+import API from '../../components/API';
+import { setNextCaseNumber, setPackingType } from '../../redux/slices/PackigListSlice';
 
 const COLUMN_WIDTH = 140;
 
@@ -102,22 +102,25 @@ const RowPackingList = ({ navigation }) => {
   }, []);
 
   /** --- Handle scan code navigation param --- */
-  useEffect(() => {
-    const code = route.params?.scannedCode;
-    if (!code || !data.length) return;
+useEffect(() => {
+  const code = route.params?.scannedCode;
+  if (!code || !data.length) return;
 
-    setSearchQuery(code);
+  console.log(code, 'code');
 
-    const matched = data.find((item) => item.part_no?.toLowerCase() === code.toLowerCase());
-    if (matched) {
-      handleStartPacking(matched);
-    } else {
-      Alert.alert('Not Found', `No item found for: ${code}`);
-    }
+  setSearchQuery(code);
 
-    // Clear param to avoid repeat
-    navigation.setParams({ scannedCode: undefined });
-  }, [route.params?.scannedCode, data]);
+  const matched = data.find((item) => item.part_no?.toLowerCase() === code.toLowerCase());
+  if (matched) {
+    handleStartPacking(matched);
+  } else {
+    Alert.alert('Not Found', `No item found for: ${code}`);
+  }
+
+  // Param clear karna ho to:
+  navigation.setParams({ scannedCode: undefined });
+}, [route.params?.scannedCode, data]);
+
 
   /** --- Start Packing Logic --- */
   const handleStartPacking = (item) => {

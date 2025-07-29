@@ -7,7 +7,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import {
   fetchClients, addClientAsync, deleteClientAsync, setSelectedClient,
-} from '../../redux/ClientDataSlice';
+} from '../redux/slices/ClientDataSlice';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const generateKey = (client) => `${client.client_name}_${client.country}`;

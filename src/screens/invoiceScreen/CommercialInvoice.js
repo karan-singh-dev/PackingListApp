@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -17,8 +17,9 @@ import * as XLSX from 'xlsx';
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
 import { Platform } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
-const PerformaInvoice = () => {
+const CommercialInvoice = () => {
   const selectedClient = useSelector((state) => state.clientData.selectedClient);
   const client = selectedClient?.client_name || '';
   const marka = selectedClient?.marka || '';
@@ -26,16 +27,43 @@ const PerformaInvoice = () => {
 
   const [loading, setLoading] = useState(false);
   const [userData, setUserData] = useState(null);
+  const [orderData, setOrderData] = useState(false);
   const [invoiceData, setInvoiceData] = useState(null);
   const [invoiceGenerated, setInvoiceGenerated] = useState(false);
-  // const { generateExcelFile, shareExcelFile } = useExcelExporter();
 
-  console.log(selectedClient);
-  console.log(userData);
+ 
+  const fetchOrderData = async () => {
+    try {
+      setLoading(true)
+      const orderRes = await API.get(`/api/orderitem/items/`, {
+        params: { client_name: client, marka },
+      });
+      const data = orderRes.data;
+      setOrderData(otrue)
+      console.log('order data ======>', data);
+      setLoading(true)
+      if (!Array.isArray(data) || data.length === 0) {
+        Alert.alert('No Data', 'No order items found for this client. please upload order first');
+        return;
+      }
 
+
+    } catch (error) {
+      setLoading(true)
+      console.error('Fetch Error:', error.response?.data || error.message);
+      Alert.alert('Error', 'Failed to load invoice data');
+    }
+  };
+   useFocusEffect(
+        useCallback(() => {
+           fetchOrderData()
+        }, [client, marka])
+    );
   /** Fetch user + invoice data after generation */
   const fetchUserAndInvoice = async () => {
     try {
+
+
       const userRes = await API.get('/api/user/users/me');
       setUserData(userRes.data);
 
@@ -76,98 +104,6 @@ const PerformaInvoice = () => {
   };
 
 
-  // const generateExcelFile = async ({ exporter, buyer, items, fileName }) => {
-  //   try {
-  //     const sheetData = [];
-
-  //     // Title row (Proforma Invoice) - merged later
-  //     sheetData.push(['Proforma Invoice']);
-  //     sheetData.push([]); // empty row
-
-  //     // Header row for side-by-side sections
-  //     sheetData.push(['Exporter Details', '', 'Buyer Details', '']);
-
-  //     // Combine exporter & buyer entries into merged "Key: Value"
-  //     const exporterEntries = Object.entries(exporter).map(
-  //       ([key, value]) => `${key}: ${value || ''}`
-  //     );
-  //     const buyerEntries = Object.entries(buyer).map(
-  //       ([key, value]) => `${key}: ${value || ''}`
-  //     );
-
-  //     const maxRows = Math.max(exporterEntries.length, buyerEntries.length);
-
-  //     for (let i = 0; i < maxRows; i++) {
-  //       const exporterRow = exporterEntries[i] ? [exporterEntries[i], ''] : ['', ''];
-  //       const buyerRow = buyerEntries[i] ? [buyerEntries[i], ''] : ['', ''];
-
-  //       // Add rows: two merged columns for exporter, two for buyer
-  //       sheetData.push([...exporterRow, ...buyerRow]);
-  //     }
-
-  //     sheetData.push([]);
-  //     sheetData.push(['Parts and Accessories of Two Wheeler']);
-  //     sheetData.push(['S.No', 'Part No', 'HSN Code', 'Qty', 'Per Unit', 'Total Amt']);
-
-  //     items.forEach((item, index) => {
-  //       sheetData.push([
-  //         index + 1,
-  //         item.part_no,
-  //         item.hsn,
-  //         item.qty,
-  //         item.per_unit,
-  //         item.total_amt,
-  //       ]);
-  //     });
-
-  //     // Create worksheet
-  //     const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
-
-  //     // --- MERGING CELLS ---
-
-  //     // Merge Proforma Invoice title across 4 columns (A1:D1)
-  //     worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }];
-
-  //     // Merge Exporter key-value cells (first 2 columns) and Buyer (next 2 columns)
-  //     const startRow = 3; // index where details start
-  //     for (let i = 0; i < maxRows + 1; i++) {
-  //       worksheet['!merges'].push(
-  //         { s: { r: startRow + i, c: 0 }, e: { r: startRow + i, c: 1 } }, // Exporter merge
-  //         { s: { r: startRow + i, c: 2 }, e: { r: startRow + i, c: 3 } }  // Buyer merge
-  //       );
-  //     }
-
-  //     // --- STYLING TITLE (BOLD + CENTERED) ---
-  //     if (!worksheet['A1'].s) worksheet['A1'].s = {};
-  //     worksheet['A1'].s = {
-  //       font: { bold: true, sz: 16 },
-  //       alignment: { horizontal: 'center', vertical: 'center' },
-  //     };
-
-  //     // Create workbook & export
-  //     const workbook = XLSX.utils.book_new();
-  //     XLSX.utils.book_append_sheet(workbook, worksheet, 'Invoice');
-
-  //     const wbout = XLSX.write(workbook, { type: 'base64', bookType: 'xlsx' });
-
-  //     const path =
-  //       Platform.OS === 'ios'
-  //         ? `${RNFS.TemporaryDirectoryPath}${fileName}`
-  //         : `${RNFS.DocumentDirectoryPath}/${fileName}`;
-
-  //     await RNFS.writeFile(path, wbout, 'base64');
-
-  //     await Share.open({
-  //       url: `file://${path}`,
-  //       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  //       filename: fileName,
-  //     });
-  //   } catch (error) {
-  //     console.error('Excel Export Error:', error);
-  //   }
-  // };
-
-
 
 
   const generateMergedExcel = async ({ exporter, buyer, items, fileName }) => {
@@ -177,8 +113,6 @@ const PerformaInvoice = () => {
       // 1. Add Proforma Invoice title (merged across all columns)
       wsData.push(['Proforma Invoice', '', '', '', '', '', '']);
 
-      // 2. Add Exporter & Buyer titles
-      wsData.push([exporter.title, '', '', buyer.title, '', '', '']);
 
       // 3. Add Exporter & Buyer details side by side
       const maxRows = Math.max(exporter.rows.length, buyer.rows.length);
@@ -359,7 +293,7 @@ const PerformaInvoice = () => {
             {/* Vertical Scroll for content */}
 
             {/* Heading */}
-          
+
 
             {/* Details Section (Exporter & Buyer) */}
 
@@ -500,12 +434,19 @@ const PerformaInvoice = () => {
           {/* Fixed Button */}
           <TouchableOpacity
             style={styles.fixedButton}
-            onPress={invoiceGenerated ? handleDownloadInvoice : generateInvoice}
+            onPress={
+              orderData
+                ? () => navigation.navigate('AppDrawer', { screen: 'OrderUpload' })
+                : invoiceGenerated
+                  ? handleDownloadInvoice
+                  : generateInvoice
+            }
           >
             <Text style={styles.buttonText}>
               {invoiceGenerated ? 'Download Invoice' : 'Generate Invoice'}
             </Text>
           </TouchableOpacity>
+
         </>
       )}
     </View>
@@ -513,7 +454,7 @@ const PerformaInvoice = () => {
 
 };
 
-export default PerformaInvoice;
+export default CommercialInvoice;
 
 const styles = StyleSheet.create({
   container: {
@@ -679,3 +620,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
