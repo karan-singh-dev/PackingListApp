@@ -78,6 +78,8 @@ const DisplayPackingList = () => {
       const res = await API.get("api/packing/packing-details/", {
         params: { client, marka },
       });
+      console.log(res.data);
+      
       setData(res.data);
     } catch (error) {
       console.error("Failed to fetch packing data:", error);

@@ -21,22 +21,44 @@ export default function QRScannerScreen({ navigation }) {
       setAllowed(true);
     })();
   }, []);
-
   const handleScan = (event) => {
     const scannedValue = event?.nativeEvent?.codeStringValue?.trim();
+    console.log('scannedValue',scannedValue);
+    
     if (!scannedValue) {
       console.log('❌ No scanned value');
       return;
     }
 
-    console.log('📸 Scanned:', scannedValue);
+    let cleanValue = "";
 
-    // Navigate back to RowPackingList with scannedCode
-    // navigation.navigate('RowPackingList', { scannedCode: scannedValue });
-    navigation.navigate('AppDrawer', { screen: 'RowPackingList',
-       params: { scannedCode: scannedValue }
-    })
+    if (scannedValue.includes("|")) {
+      // Pipe-separated → take the part starting with 'S'
+      const parts = scannedValue.split("|");
+      console.log(parts);
+      
+      cleanValue =parts[1];
+    }
+    else if (scannedValue.includes("_")) {
+      // Pipe-separated → take the part starting with 'S'
+      const parts = scannedValue.split("_");
+      console.log(parts);
+      
+      cleanValue =parts[0];
+    } 
+    // Ensure only alphanumeric characters (safety)
+    cleanValue = cleanValue.replace(/[^A-Za-z0-9]/g, "");
+
+    console.log('📸 Scanned:', cleanValue);
+
+    navigation.navigate('AppDrawer', {
+      screen: 'RowPackingList',
+      params: { scannedCode: cleanValue }
+    });
   };
+
+
+
 
   if (!allowed) return <View style={{ flex: 1, backgroundColor: 'black' }} />;
 

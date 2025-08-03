@@ -10,7 +10,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { pick, types } from '@react-native-documents/picker';
-import XLSX from 'xlsx';
+
+import * as ExcelJS from 'exceljs';
 import RNFS from 'react-native-fs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSelector } from 'react-redux';
@@ -29,37 +30,66 @@ const AddStock = ({ navigation }) => {
   const marka = selectedClient?.marka || '';
   const client = selectedClient?.client_name || '';
 
-  const handleFilePick = async () => {
-    try {
-      const res = await pick({
-        allowMultiSelection: false,
-        type: [types.xlsx, types.xls],
-      });
+const handleFilePick = async () => {
+  try {
+    // Pick Excel file
+    const res = await pick({
+      allowMultiSelection: false,
+      type: [types.xlsx, types.xls],
+    });
 
-      if (!res || !res[0]) return Alert.alert('No file selected');
+    if (!res || !res[0]) return Alert.alert('No file selected');
 
-      const file = res[0];
-      setSelectedFile(file);
+    const file = res[0];
+    setSelectedFile(file);
 
-      const filePath = file.uri.replace('file://', '');
-      const b64 = await RNFS.readFile(filePath, 'base64');
-      const wb = XLSX.read(b64, { type: 'base64' });
-      const wsname = wb.SheetNames[0];
-      const ws = wb.Sheets[wsname];
-      const data = XLSX.utils.sheet_to_json(ws);
+    // Convert file URI to path (RNFS expects no file:// prefix)
+    const filePath = file.uri.replace('file://', '');
 
-      if (data.length === 0) return Alert.alert('No data found in file');
+    // Read file as Base64
+    const b64 = await RNFS.readFile(filePath, 'base64');
 
-      const headerRow = Object.keys(data[0]);
-      const rowData = data.map(obj => headerRow.map(key => obj[key] ?? ''));
-
-      setHeaders(headerRow);
-      setRows(rowData);
-    } catch (err) {
-      console.error('Error reading file:', err);
-      Alert.alert('Error', 'Could not read or parse file');
+    // Convert Base64 to ArrayBuffer for ExcelJS
+    const binaryString = atob(b64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
     }
-  };
+    const buffer = bytes.buffer;
+
+    // Load workbook using ExcelJS
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+
+    // Use first worksheet
+    const worksheet = workbook.worksheets[0];
+
+    if (!worksheet) return Alert.alert('Error', 'No worksheet found');
+
+    // Extract headers from first row
+    const headerRow = worksheet.getRow(1).values.slice(1); // skip first empty index
+
+    // Extract remaining rows
+    const rowData = [];
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // skip header
+      const rowValues = row.values.slice(1).map(v => (v != null ? v : ''));
+      rowData.push(rowValues);
+    });
+
+    // Validate
+    if (rowData.length === 0) return Alert.alert('No data found in file');
+
+    // Update state
+    setHeaders(headerRow);
+    setRows(rowData);
+
+  } catch (err) {
+    console.error('Error reading file with ExcelJS:', err);
+    Alert.alert('Error', 'Could not read or parse file');
+  }
+};
 
   const handleUpload = async () => {
     if (!selectedFile) return Alert.alert('Select file first');

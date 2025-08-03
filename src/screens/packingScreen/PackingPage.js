@@ -22,7 +22,7 @@ export default function PackingPage({ navigation }) {
     { title: 'Order Update', screen: 'OrderUpdate', icon: 'edit', color: '#6366F1' },
     { title: 'Order', screen: 'UploadedOrder', icon: 'file-text', color: '#14B8A6' },
     { title: 'Estimate List', screen: 'Estimate', icon: 'list', color: '#F59E0B' },
-    { title: 'Stock', screen: 'AddStock', icon: 'box', color: '#10B981' },
+    { title: 'Update Stock', screen: 'AddStock', icon: 'upload-cloud', color: '#10B981' },
     { title: 'Stock List', screen: 'StockList', icon: 'layers', color: '#8B5CF6' },
     { title: 'Row Packing List', screen: 'RowPackingList', icon: 'grid', color: '#EC4899' },
     { title: 'Packing List', screen: 'PackingList', icon: 'clipboard', color: '#F97316' },

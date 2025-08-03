@@ -1,4 +1,4 @@
-import XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import RNFS from "react-native-fs";
 import Share from "react-native-share";
 import { Platform } from "react-native";
@@ -6,13 +6,25 @@ import { Platform } from "react-native";
 export const useExcelExporter = () => {
   const generateExcelFile = async ({ data, headers, fileName, sheetName }) => {
     try {
-      const grouped = {};
-      data.forEach((item) => {
-        const key = `${item.case_no_start}-${item.case_no_end}`;
-        if (!grouped[key]) grouped[key] = [];
-        grouped[key].push(item);
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet(sheetName || "Sheet1");
+
+      // --- 1. Header Row with Style ---
+      const headerRow = headers.map((h) => h.label);
+      const headerRowObj = worksheet.addRow(headerRow);
+
+      // Set header row height (customizable)
+      worksheet.getRow(1).height = 40;
+
+      headerRowObj.eachCell((cell) => {
+        cell.fill = {
+          type: "pattern", pattern: "solid", fgColor: { argb: "FF0000" }, // red background
+        };
+        cell.font = { bold: true, color: { argb: "000000" } }; // black text
+        cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
       });
 
+      // --- 2. Shared Fields (to merge vertically) ---
       const sharedFields = [
         "case_no_start",
         "case_no_end",
@@ -25,97 +37,85 @@ export const useExcelExporter = () => {
         "cbm",
       ];
 
-      // Styled header row
-      const sheetData = [
-        headers.map((h) => ({
-          v: h.label,
-          s: {
-            fill: { fgColor: { rgb: "FF0000" } }, 
-            font: { bold: true, color: { rgb: "FF0000" } }, 
-            alignment: { horizontal: "center", vertical: "center" },
-          },
-        })),
-      ];
+      // --- 3. Add Data Rows ---
+      data.forEach((item) => {
+        const row = headers.map(({ key }) =>
+          item[key] != null ? item[key].toString() : ""
+        );
 
-      const merges = [];
-      let currentRow = 1;
-
-      for (const groupRows of Object.values(grouped)) {
-        const rowspan = groupRows.length;
-
-        groupRows.forEach((item, rowIndex) => {
-          const row = headers.map(({ key }) => {
-            if (sharedFields.includes(key)) {
-              return rowIndex === 0 ? (item[key] != null ? item[key].toString() : "") : null;
-            }
-            return item[key] != null ? item[key].toString() : "";
-          });
-
-          sheetData.push(row);
-
-          if (rowIndex === 0 && rowspan > 1) {
-            headers.forEach(({ key }, colIndex) => {
-              if (sharedFields.includes(key)) {
-                merges.push({
-                  s: { r: currentRow, c: colIndex },
-                  e: { r: currentRow + rowspan - 1, c: colIndex },
-                });
-              }
-            });
+        const rowObj = worksheet.addRow(row);
+        const isLastRow = item === data.length - 1;
+        // Center alignment for each cell in this row
+        rowObj.eachCell((cell) => {
+          cell.alignment = {
+            horizontal: "center",
+            vertical: "middle",
+            wrapText: true // optional
+          };
+          if (!isLastRow) {
+            cell.border = {
+              top: { style: "thin" },
+              left: { style: "thin" },
+              bottom: { style: "thin" },
+              right: { style: "thin" }
+            };
           }
-
-          currentRow++;
         });
+
+        rowObj.height = 15; // <-- Fixed data row height
+      });
+
+
+      // --- 4. Column Widths (set for every column) ---
+      const customWidths = {
+        1: 5, 2: 15, 3: 25, 4: 15, 5: 10, 6: 8, 7: 10,
+        8: 10, 9: 10, 10: 8, 11: 8, 12: 6, 13: 6, 14: 6, 15: 6, 16: 8, 17: 8,
+        18: 8, 19: 8, 20: 7, 21: 7, 22: 7, 23: 8, 24: 8
+      };
+      headers.forEach((h, i) => {
+        const colIndex = i + 1;
+        if (customWidths[colIndex]) {
+          worksheet.getColumn(colIndex).width = customWidths[colIndex];
+        } else if (h.width) {
+          worksheet.getColumn(colIndex).width = Math.round(h.width / 7);
+        } else {
+          worksheet.getColumn(colIndex).width = 20; // default fallback
+        }
+      });
+
+
+      // --- 5. Merge Shared Fields vertically by `case_no_start` ---
+      let groupStartRow = 2; // first data row (row 2)
+      for (let i = 1; i < data.length; i++) {
+        const prevStart = data[i - 1].case_no_start;
+        const currentStart = data[i].case_no_start;
+
+        if (prevStart !== currentStart) {
+          mergeSharedFields(groupStartRow, i + 1, sharedFields, headers, worksheet);
+          groupStartRow = i + 2; // new group start
+        }
       }
+      // Merge last group
+      mergeSharedFields(groupStartRow, data.length + 1, sharedFields, headers, worksheet);
 
-      const ws = XLSX.utils.aoa_to_sheet(sheetData);
-      ws["!merges"] = merges;
+      // --- 6. Freeze Header Row ---
+      worksheet.views = [{ state: "frozen", ySplit: 1 }];
 
-      ws["!freeze"] = { xSplit: 0, ySplit: 1 };
-
-      const colWidths = headers.map((h) => ({ wpx: h.width || 100 }));
-      ws["!cols"] = colWidths;
-
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, sheetName || "Sheet1");
-4
-      const wbout = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+      // --- 7. Save File ---
+      const buffer = await workbook.xlsx.writeBuffer();
+      const base64 = arrayBufferToBase64(buffer);
 
       const path = `${RNFS.DownloadDirectoryPath}/${fileName}.xlsx`;
-      console.log("Saving to path:", path);
-      await RNFS.writeFile(path, wbout, "base64");
+      await RNFS.writeFile(path, base64, "base64");
 
-      const exists = await RNFS.exists(path);
-      console.log(`File exists: ${exists}`);
-      if (!exists) {
-        console.warn("File not found after saving");
-        return null;
-      }
-
-      const stats = await RNFS.stat(path);
-      console.log(`File size: ${stats.size} bytes`);
-      if (stats.size < 1000) {
-        console.warn("File size is too small, possible corruption");
-      }
-
-      // Step 7: Update Media Store with retry
       if (Platform.OS === "android") {
         try {
           await RNFS.scanFile(path);
-          console.log("Media Store updated for:", path);
         } catch (scanError) {
-          console.error("Failed to update Media Store:", scanError);
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          try {
-            await RNFS.scanFile(path);
-            console.log("Media Store retry successful for:", path);
-          } catch (retryError) {
-            console.error("Media Store retry failed:", retryError);
-          }
+          console.warn("Media Store update failed:", scanError);
         }
       }
 
-      console.log(`✅ File saved to: ${path}`);
       return path;
     } catch (error) {
       console.error("Error creating Excel file:", error);
@@ -123,6 +123,31 @@ export const useExcelExporter = () => {
     }
   };
 
+  // --- Helper: Merge columns in sharedFields between startRow and endRow ---
+  function mergeSharedFields(startRow, endRow, sharedFields, headers, worksheet) {
+    if (endRow - 1 <= startRow) return; // only merge if block > 1 row
+    sharedFields.forEach((field) => {
+      const colIndex = headers.findIndex((h) => h.key === field) + 1;
+      if (colIndex > 0) {
+        worksheet.mergeCells(startRow, colIndex, endRow - 1, colIndex);
+        const mergedCell = worksheet.getCell(startRow, colIndex);
+        mergedCell.alignment = { vertical: "middle", horizontal: "center" };
+      }
+    });
+  }
+
+  // --- Helper: Convert ArrayBuffer → Base64 ---
+  function arrayBufferToBase64(buffer) {
+    let binary = "";
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+    }
+    return global.btoa(binary);
+  }
+
+  // --- Share File ---
   const shareExcelFile = async (filePath, title) => {
     try {
       if (!filePath) {

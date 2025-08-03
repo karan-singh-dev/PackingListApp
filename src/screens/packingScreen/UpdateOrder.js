@@ -13,7 +13,7 @@ import {
     TextInput
 } from 'react-native';
 import { pick, types } from '@react-native-documents/picker';
-import XLSX from 'xlsx';
+ import * as ExcelJS from 'exceljs';
 import RNFS from 'react-native-fs';
 import API from '../../components/API';
 import { useSelector } from 'react-redux';
@@ -37,48 +37,71 @@ const UpdateOrder = ({ navigation }) => {
     const [qty, setQty] = useState('');
 
     /** File picker **/
-    const handleFilePick = async () => {
-        try {
-            setLoading(true);
-            const res = await pick({
-                allowMultiSelection: false,
-                type: [types.xlsx, types.xls],
-            });
+  
+const handleFilePick = async () => {
+  try {
+    setLoading(true);
 
-            if (!res || !res[0]) {
-                Alert.alert('No file selected');
-                return;
-            }
+    const res = await pick({
+      allowMultiSelection: false,
+      type: [types.xlsx, types.xls],
+    });
 
-            const file = res[0];
-            setSelectedFile(file);
+    if (!res || !res[0]) {
+      Alert.alert('No file selected');
+      return;
+    }
 
-            const filePath = file.uri.replace('file://', '');
-            const b64 = await RNFS.readFile(filePath, 'base64');
+    const file = res[0];
+    setSelectedFile(file);
 
-            const wb = XLSX.read(b64, { type: 'base64' });
-            const wsname = wb.SheetNames[0];
-            const ws = wb.Sheets[wsname];
-            const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    // Remove file:// prefix for RNFS
+    const filePath = file.uri.replace('file://', '');
+    const b64 = await RNFS.readFile(filePath, 'base64');
 
-            if (data.length === 0) {
-                Alert.alert('No data found in file');
-                return;
-            }
+    // Decode Base64 → ArrayBuffer
+    const binary = global.atob(b64);
+    const buffer = new ArrayBuffer(binary.length);
+    const view = new Uint8Array(buffer);
+    for (let i = 0; i < binary.length; i++) {
+      view[i] = binary.charCodeAt(i);
+    }
 
-            const headerRow = Object.keys(data[0]);
-            const rowData = data.map(obj => headerRow.map(key => obj[key] ?? ''));
+    // Load workbook via ExcelJS
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
 
-            setHeaders(headerRow);
-            setRows(rowData);
-            setProceeded(false); // reset checklist when new file picked
-        } catch (err) {
-            console.error('Error reading file:', err);
-            Alert.alert('Error', 'Could not read or parse file');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) {
+      Alert.alert('Error', 'No worksheet found in file');
+      return;
+    }
+
+    // Convert worksheet rows to JSON-like structure
+    const rows = [];
+    worksheet.eachRow({ includeEmpty: true }, (row) => {
+      rows.push(row.values.slice(1)); // Remove first empty index
+    });
+
+    if (rows.length === 0) {
+      Alert.alert('No data found in file');
+      return;
+    }
+
+    const headerRow = rows[0].map(h => h?.toString() || '');
+    const rowData = rows.slice(1);
+
+    setHeaders(headerRow);
+    setRows(rowData);
+    setProceeded(false); // reset checklist
+  } catch (err) {
+    console.error('Error reading file:', err);
+    Alert.alert('Error', 'Could not read or parse file');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
     const buildFormData = () => {
         const formData = new FormData();
@@ -120,7 +143,7 @@ const UpdateOrder = ({ navigation }) => {
                     ? estimateRes.data.missing_data.join('\n') // each on new line
                     : String(estimateRes.data.missing_data);
 
-                Alert.alert('The part number mentioned below is no longer serviceable please ', missing);
+                Alert.alert('The part number mentioned below is no longer serviceable please note this part no.', missing);
             }
             // 3. Sync stock once here
             await API.post('/api/packing/packing/sync-stock/');

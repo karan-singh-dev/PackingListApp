@@ -38,6 +38,8 @@ export const fetchPackingData = createAsyncThunk(
 export const submitPackingDetails = createAsyncThunk(
   'packing/submitPackingDetails',
   async ({ form, passedData, client, marka }, { rejectWithValue }) => {
+    console.log(passedData,'passdata');
+    
     try {
       if (!API) throw new Error('API instance is not configured.');
 

@@ -47,7 +47,8 @@ const RowPackingList = ({ navigation }) => {
         params: { client, marka },
       });
       const lastItem = res.data[res.data.length - 1];
-
+console.log('packing data ======>', res);
+console.log('packing data ======>',  client, marka);
       if (!lastItem) {
         dispatch(setNextCaseNumber('1'));
         dispatch(setPackingType(null));

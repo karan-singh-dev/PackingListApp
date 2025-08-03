@@ -115,9 +115,7 @@ const MixPacking = () => {
           box_mrp: item.mrp || "",
           description: item.description || "",
           hsn_no: item.hsn || "",
-          gst: typeof item.tax_percent === 'string'
-            ? parseFloat(item.tax_percent.replace(/[^\d.]/g, ''))
-            : ""
+          gst: item.tax_percent?.toString() || "",
         }));
       }
     }

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSelector } from 'react-redux';
-import XLSX from 'xlsx';
+ import * as ExcelJS from 'exceljs';
 import RNFS from 'react-native-fs';
 import API from '../../components/API';
 import { useFocusEffect } from '@react-navigation/native';
@@ -46,8 +46,8 @@ const Estimate = ({ navigation }) => {
         params: { client_name: client, marka },
       });
       const data = response.data;
-      console.log('estimate data ======>',data);
-      
+      console.log('estimate data ======>', data);
+
       if (!Array.isArray(data) || data.length === 0) {
         Alert.alert('No Data', 'No estimate data found for this client.');
         return;
@@ -69,16 +69,16 @@ const Estimate = ({ navigation }) => {
   const handleCopyFromEstimate = async () => {
     try {
       setLoading(true)
-      console.log("{ client:client,marka}",{ client:client,marka});
-      
-    const res =   await API.post('/api/packing/packing/copy-from-estimate/', { client:client,marka});
-    if(res.status==200){
-      navigation.navigate('RowPackingList')
-    }
-   console.log('hello',res);
-   setLoading(false)
+      console.log("{ client:client,marka}", { client: client, marka });
+
+      const res = await API.post('/api/packing/packing/copy-from-estimate/', { client: client, marka });
+      if (res.status == 200) {
+        navigation.navigate('RowPackingList')
+      }
+      console.log('hello', res);
+      setLoading(false)
     } catch (error) {
-       setLoading(false)
+      setLoading(false)
       console.error("Error copying from estimate:", error.response?.data || error.message);
       Alert.alert('Error', 'Could not copy from estimate');
     }
@@ -105,46 +105,68 @@ const Estimate = ({ navigation }) => {
     }
   };
 
-  const downloadEstimateExcel = async (estimateData) => {
-    const granted = await requestAndroidPermissions();
-    if (!granted) {
-      Alert.alert("Permission Denied", "Storage permission is required to save the estimate file.");
-      return;
-    }
 
-    try {
+const downloadEstimateExcel = async (estimateData) => {
+  const granted = await requestAndroidPermissions();
+  if (!granted) {
+    Alert.alert("Permission Denied", "Storage permission is required to save the estimate file.");
+    return;
+  }
 
+  try {
+    // === Create Workbook and Worksheet ===
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Estimate');
 
-      const wsData = [
-        Object.keys(estimateData[0] || {}).map(k => k.toUpperCase()),
-        ...estimateData.map(row => Object.values(row)),
-      ];
-      const ws = XLSX.utils.aoa_to_sheet(wsData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Estimate");
+    // === Header Row ===
+    const headers = Object.keys(estimateData[0] || {}).map(k => k.toUpperCase());
+    worksheet.addRow(headers);
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).alignment = { horizontal: 'center' };
 
-      const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
-      const filename = `Estimate_${Date.now()}.xlsx`;
-      const filePath =
-        Platform.OS === 'android'
-          ? `${RNFS.DownloadDirectoryPath}/${filename}`
-          : `${RNFS.DocumentDirectoryPath}/${filename}`;
+    // === Data Rows ===
+    estimateData.forEach(row => {
+      worksheet.addRow(Object.values(row));
+    });
 
-      await RNFS.writeFile(filePath, wbout, 'base64');
+    // === Auto width for columns ===
+    worksheet.columns.forEach((col) => {
+      let maxLength = 10;
+      col.eachCell({ includeEmpty: true }, (cell) => {
+        const val = cell.value ? cell.value.toString() : "";
+        maxLength = Math.max(maxLength, val.length);
+      });
+      col.width = maxLength + 2;
+    });
 
-      const exists = await RNFS.exists(filePath);
-      if (!exists) throw new Error("File not found after writing");
+    // === Generate file buffer ===
+    const buffer = await workbook.xlsx.writeBuffer();
 
-      Alert.alert(
-        "Download Successful",
-        `Estimate saved to:\n${filePath}`,
-        [{ text: "OK" }]
-      );
-    } catch (error) {
-      console.error("Download error:", error);
-      Alert.alert("Download Failed", `Error: ${error.message}`, [{ text: "OK" }]);
-    }
-  };
+    // Convert buffer to Base64
+    const binary = String.fromCharCode(...new Uint8Array(buffer));
+    const base64 = global.btoa(binary);
+
+    // File path
+    const filename = `Estimate_${Date.now()}.xlsx`;
+    const filePath =
+      Platform.OS === 'android'
+        ? `${RNFS.DownloadDirectoryPath}/${filename}`
+        : `${RNFS.DocumentDirectoryPath}/${filename}`;
+
+    // Write file
+    await RNFS.writeFile(filePath, base64, 'base64');
+
+    // Verify file
+    const exists = await RNFS.exists(filePath);
+    if (!exists) throw new Error("File not found after writing");
+
+    Alert.alert("Download Successful", `Estimate saved to:\n${filePath}`);
+  } catch (error) {
+    console.error("Download error:", error);
+    Alert.alert("Download Failed", `Error: ${error.message}`);
+  }
+};
+
 
   const getEstimateDataObjects = () => {
     if (!headers.length || !rows.length) return [];
@@ -171,6 +193,12 @@ const Estimate = ({ navigation }) => {
         index % 2 === 0 ? styles.rowEven : styles.rowOdd,
       ]}
     >
+      {/* Display the index + 1 as row number */}
+      <View style={styles.cellWrapper}>
+        <Text style={styles.cellText}>{index + 1}</Text>
+      </View>
+
+      {/* Render the rest of the cells */}
       {item.map((cell, cellIndex) => (
         <View key={cellIndex} style={styles.cellWrapper}>
           <Text style={styles.cellText}>{cell}</Text>
@@ -195,7 +223,11 @@ const Estimate = ({ navigation }) => {
             <View>
 
               <View style={styles.tableRowHeader}>
+                <View style={[styles.cellWrapper, { flex: 0.5 }]}>
+                  <Text style={styles.headerText}>Sr No.</Text>
+                </View>
                 {headers.map((header, index) => (
+                  
                   <View key={index} style={styles.cellWrapper}>
                     <Text style={styles.headerText}>{header}</Text>
                   </View>
@@ -213,25 +245,25 @@ const Estimate = ({ navigation }) => {
             </View>
           </ScrollView>
 
-          <View style={{flexDirection:'row',gap:15,justifyContent:'space-between',margin:10}}>
+          <View style={{ flexDirection: 'row', gap: 15, justifyContent: 'space-between', margin: 10 }}>
             <TouchableOpacity
-            style={styles.downloadButton}
-            onPress={() => {
-              const estimateData = getEstimateDataObjects();
-              if (!estimateData.length) {
-                Alert.alert("No Data", "There is no estimate data to download.");
-                return;
-              }
-              downloadEstimateExcel(estimateData);
-            }}
-          >
-            <Text style={styles.downloadButtonText}>Download Estimate</Text>
-          </TouchableOpacity>
-           <TouchableOpacity
-            style={[styles.downloadButton,{backgroundColor:'#244cfcff',margin:10}]}
-            onPress={() => { handleCopyFromEstimate()}}>
-            <Text style={styles.downloadButtonText}>Start Packing</Text>
-          </TouchableOpacity>
+              style={styles.downloadButton}
+              onPress={() => {
+                const estimateData = getEstimateDataObjects();
+                if (!estimateData.length) {
+                  Alert.alert("No Data", "There is no estimate data to download.");
+                  return;
+                }
+                downloadEstimateExcel(estimateData);
+              }}
+            >
+              <Text style={styles.downloadButtonText}>Download Estimate</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.downloadButton, { backgroundColor: '#244cfcff', margin: 10 }]}
+              onPress={() => { handleCopyFromEstimate() }}>
+              <Text style={styles.downloadButtonText}>Start Packing</Text>
+            </TouchableOpacity>
           </View>
         </>
       )}

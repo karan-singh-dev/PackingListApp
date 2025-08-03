@@ -124,8 +124,11 @@ const SeperatePacking = () => {
 
   useEffect(() => {
     if (form.part_no && estimateList.length) {
+      
+      
       const item = estimateList.find((e) => e.part_no === form.part_no);
       if (item) {
+        console.log('item.tax_percent',item.tax_percent);
         setForm((prev) => ({
           ...prev,
           mrp_invoice: item.mrp || "",

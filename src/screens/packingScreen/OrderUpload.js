@@ -9,11 +9,9 @@ import {
   StyleSheet,
   useWindowDimensions,
   FlatList,
-  Modal, TextInput
 } from 'react-native';
 import { pick, types } from '@react-native-documents/picker';
-import { Dropdown } from 'react-native-element-dropdown';
-import XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import RNFS from 'react-native-fs';
 import API from '../../components/API';
 import { useSelector } from 'react-redux';
@@ -33,16 +31,14 @@ const OrderUpload = ({ navigation }) => {
   const [success, setSuccess] = useState(false);
 
 
- 
-  const handleFilePick = async () => {
 
+  const handleFilePick = async () => {
     try {
       setLoading(true);
       const res = await pick({
         allowMultiSelection: false,
         type: [types.xlsx, types.xls],
       });
-
 
       if (!res || !res[0]) {
         Alert.alert('No file selected');
@@ -51,21 +47,30 @@ const OrderUpload = ({ navigation }) => {
 
       const file = res[0];
       setSelectedFile(file);
+
+      // Convert file to base64
       const filePath = file.uri.replace('file://', '');
       const b64 = await RNFS.readFile(filePath, 'base64');
 
-      const wb = XLSX.read(b64, { type: 'base64' });
-      const wsname = wb.SheetNames[0];
-      const ws = wb.Sheets[wsname];
-      const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      // Convert base64 to ArrayBuffer
+      const buffer = Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer;
 
-      if (data.length === 0) {
-        Alert.alert('No data found in file');
-        return;
-      }
+      // Load workbook using ExcelJS
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer);
 
-      const headerRow = Object.keys(data[0]);
-      const rowData = data.map(obj => headerRow.map(key => obj[key] ?? ''));
+      const worksheet = workbook.worksheets[0]; // first sheet
+
+      // Extract headers (first row) and data
+      const headerRow = worksheet.getRow(1).values.slice(1); // skip index 0
+      const rowData = [];
+
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return; // skip header
+        const rowValues = row.values.slice(1); // skip first empty index
+        rowData.push(rowValues);
+      });
+      console.log(rowData);
 
       setHeaders(headerRow);
       setRows(rowData);
@@ -105,6 +110,7 @@ const OrderUpload = ({ navigation }) => {
         Alert.alert('Success', 'File uploaded successfully!');
         setSuccess(true)
       } else {
+        setSuccess(false)
         Alert.alert('Error', 'File upload failed');
       }
     } catch (err) {
@@ -116,9 +122,10 @@ const OrderUpload = ({ navigation }) => {
   };
 
   const generateEstimate = async () => {
-
+    if (!success) {
+      Alert.alert('file not uploaded')
+    }
     try {
-       setShowEstimateModal(false)
       setLoading(true)
       const res = await API.post('/api/asstimate/genrate/', {
         client_name: client,
@@ -131,20 +138,24 @@ const OrderUpload = ({ navigation }) => {
         setProceeded(false)
         setSuccess(false)
         setLoading(false)
-        setSelectedGSTs([])
-        setGstValue(null)
-        setRupees('')
         setHeaders([]);
         setRows([]);
         setSelectedFile(null);
         navigation.navigate('Estimate');
-
-      } else {
+      } else if (res.data?.missing_data) {
          setLoading(false)
+        const missing = Array.isArray(res.data.missing_data)
+          ? res.data.missing_data.join('\n') // each on new line
+          : String(res.data.missing_data);
+
+        Alert.alert('The part number mentioned below is no longer serviceable please note this part no.', missing);
+      }
+      else {
+        setLoading(false)
         Alert.alert('Error', 'Failed to generate estimate');
       }
     } catch (error) {
-       setLoading(false)
+      setLoading(false)
       console.error('Estimate error:', error);
       Alert.alert('Error', 'Could not generate estimate');
     }

@@ -85,10 +85,8 @@ const UploadedOrder = ({ navigation }) => {
     );
 
     const generateEstimate = async () => {
-        console.log(client, marka, selectedGSTs, rupees)
-
+        console.log(client, marka)
         try {
-            setShowEstimateModal(false)
             setLoading(true)
             const res = await API.post('/api/asstimate/genrate/', {
                 client_name: client,
