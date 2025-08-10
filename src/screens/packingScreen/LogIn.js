@@ -1,16 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUser } from '../../redux/slices/LoginSlice';
+import { fetchMrpList } from '../../redux/slices/MrpDataSlice';
 
 const LogIn = () => {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
+    const [username, setUsername] = useState('gaurav');
+    const [password, setPassword] = useState('12345');
     const [localError, setLocalError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const dispatch = useDispatch();
 
     const { loading, error: reduxError } = useSelector((state) => state.login);
+
+//     useEffect(()=>{
+//    dispatch(fetchMrpList());
+//     },[])
 
     const handleLogin = () => {
         setLocalError('');
@@ -22,8 +27,7 @@ const LogIn = () => {
         }
     };
 
-
-
+       
     const submitLogin = async () => {
         if (isSubmitting) return;
 

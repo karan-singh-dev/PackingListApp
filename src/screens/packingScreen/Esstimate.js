@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useSelector } from 'react-redux';
- import * as ExcelJS from 'exceljs';
+import * as ExcelJS from 'exceljs';
 import RNFS from 'react-native-fs';
 import API from '../../components/API';
 import { useFocusEffect } from '@react-navigation/native';
@@ -22,7 +22,7 @@ import { useFocusEffect } from '@react-navigation/native';
 const windowHeight = Dimensions.get('window').height;
 
 const Estimate = ({ navigation }) => {
-  const selectedClient = useSelector((state) => state.clientData.selectedClient);
+  const selectedClient = useSelector((state) => state?.clientData?.selectedClient);
 
   if (!selectedClient) {
     return (
@@ -40,31 +40,39 @@ const Estimate = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
 
   const fetchDataFromAPI = async () => {
-    try {
-      setLoading(true);
-      const response = await API.get(`/api/asstimate/`, {
-        params: { client_name: client, marka },
-      });
-      const data = response.data;
-      console.log('estimate data ======>', data);
+  try {
+    setLoading(true);
+    const response = await API.get(`/api/asstimate/`, {
+      params: { client_name: client, marka },
+    });
+    const data = response.data;
+    console.log('estimate data ======>', data);
 
-      if (!Array.isArray(data) || data.length === 0) {
-        Alert.alert('No Data', 'No estimate data found for this client.');
-        return;
-      }
-      const extractedHeaders = Object.keys(data[0]);
-      const extractedRows = data.map(item =>
-        extractedHeaders.map(key => item[key] ?? '')
-      );
-      setHeaders(extractedHeaders);
-      setRows(extractedRows);
-    } catch (error) {
-      console.error('API Fetch Error:', error.response?.data || error.message);
-      Alert.alert('Error', 'Could not fetch estimate data');
-    } finally {
-      setLoading(false);
+    if (!Array.isArray(data) || data.length === 0) {
+      setHeaders([]);
+      setRows([]);
+      return;
     }
-  };
+
+    // Filter out 'id' and 'client'
+    const extractedHeaders = Object.keys(data[0]).filter(
+      key => key !== 'id' && key !== 'client'
+    );
+
+    const extractedRows = data.map(item =>
+      extractedHeaders.map(key => item[key] ?? '')
+    );
+
+    setHeaders(extractedHeaders);
+    setRows(extractedRows);
+  } catch (error) {
+    console.error('API Fetch Error:', error.response?.data || error.message);
+    Alert.alert('Error', 'Could not fetch estimate data');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleCopyFromEstimate = async () => {
     try {
@@ -106,78 +114,80 @@ const Estimate = ({ navigation }) => {
   };
 
 
-const downloadEstimateExcel = async (estimateData) => {
-  const granted = await requestAndroidPermissions();
-  if (!granted) {
-    Alert.alert("Permission Denied", "Storage permission is required to save the estimate file.");
-    return;
-  }
+  const downloadEstimateExcel = async (estimateData) => {
+    const granted = await requestAndroidPermissions();
+    if (!granted) {
+      Alert.alert("Permission Denied", "Storage permission is required to save the estimate file.");
+      return;
+    }
 
-  try {
-    // === Create Workbook and Worksheet ===
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Estimate');
+    try {
+      // === Create Workbook and Worksheet ===
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Estimate');
 
-    // === Header Row ===
-    const headers = Object.keys(estimateData[0] || {}).map(k => k.toUpperCase());
-    worksheet.addRow(headers);
-    worksheet.getRow(1).font = { bold: true };
-    worksheet.getRow(1).alignment = { horizontal: 'center' };
+      // === Header Row ===
+      const headers = Object.keys(estimateData[0] || {}).map(k => k.toUpperCase());
+      worksheet.addRow(headers);
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).alignment = { horizontal: 'center' };
 
-    // === Data Rows ===
-    estimateData.forEach(row => {
-      worksheet.addRow(Object.values(row));
-    });
-
-    // === Auto width for columns ===
-    worksheet.columns.forEach((col) => {
-      let maxLength = 10;
-      col.eachCell({ includeEmpty: true }, (cell) => {
-        const val = cell.value ? cell.value.toString() : "";
-        maxLength = Math.max(maxLength, val.length);
+      // === Data Rows ===
+      estimateData.forEach(row => {
+        worksheet.addRow(Object.values(row));
       });
-      col.width = maxLength + 2;
-    });
 
-    // === Generate file buffer ===
-    const buffer = await workbook.xlsx.writeBuffer();
+      // === Auto width for columns ===
+      worksheet.columns.forEach((col) => {
+        let maxLength = 10;
+        col.eachCell({ includeEmpty: true }, (cell) => {
+          const val = cell.value ? cell.value.toString() : "";
+          maxLength = Math.max(maxLength, val.length);
+        });
+        col.width = maxLength + 2;
+      });
 
-    // Convert buffer to Base64
-    const binary = String.fromCharCode(...new Uint8Array(buffer));
-    const base64 = global.btoa(binary);
+      // === Generate file buffer ===
+      const buffer = await workbook.xlsx.writeBuffer();
 
-    // File path
-    const filename = `Estimate_${Date.now()}.xlsx`;
-    const filePath =
-      Platform.OS === 'android'
-        ? `${RNFS.DownloadDirectoryPath}/${filename}`
-        : `${RNFS.DocumentDirectoryPath}/${filename}`;
+      // Convert buffer to Base64
+      const binary = String.fromCharCode(...new Uint8Array(buffer));
+      const base64 = global.btoa(binary);
 
-    // Write file
-    await RNFS.writeFile(filePath, base64, 'base64');
+      // File path
+      const filename = `Estimate_${Date.now()}.xlsx`;
+      const filePath =
+        Platform.OS === 'android'
+          ? `${RNFS.DownloadDirectoryPath}/${filename}`
+          : `${RNFS.DocumentDirectoryPath}/${filename}`;
 
-    // Verify file
-    const exists = await RNFS.exists(filePath);
-    if (!exists) throw new Error("File not found after writing");
+      // Write file
+      await RNFS.writeFile(filePath, base64, 'base64');
 
-    Alert.alert("Download Successful", `Estimate saved to:\n${filePath}`);
-  } catch (error) {
-    console.error("Download error:", error);
-    Alert.alert("Download Failed", `Error: ${error.message}`);
-  }
-};
+      // Verify file
+      const exists = await RNFS.exists(filePath);
+      if (!exists) throw new Error("File not found after writing");
+
+      Alert.alert("Download Successful", `Estimate saved to:\n${filePath}`);
+    } catch (error) {
+      console.error("Download error:", error);
+      Alert.alert("Download Failed", `Error: ${error.message}`);
+    }
+  };
 
 
   const getEstimateDataObjects = () => {
-    if (!headers.length || !rows.length) return [];
-    return rows.map(row => {
-      const obj = {};
-      headers.forEach((header, index) => {
-        obj[header] = row[index];
-      });
-      return obj;
+  if (!headers.length || !rows.length) return [];
+
+  return rows.map(row => {
+    const obj = {};
+    headers.forEach((header, index) => {
+      obj[header] = row[index];
     });
-  };
+    return obj;
+  });
+};
+
 
   useFocusEffect(
     useCallback(() => {
@@ -186,30 +196,29 @@ const downloadEstimateExcel = async (estimateData) => {
     }, [client, marka])
   );
 
-  const renderRow = ({ item, index }) => (
-    <View
-      style={[
-        styles.tableRow,
-        index % 2 === 0 ? styles.rowEven : styles.rowOdd,
-      ]}
-    >
-      {/* Display the index + 1 as row number */}
-      <View style={styles.cellWrapper}>
-        <Text style={styles.cellText}>{index + 1}</Text>
-      </View>
-
-      {/* Render the rest of the cells */}
-      {item.map((cell, cellIndex) => (
-        <View key={cellIndex} style={styles.cellWrapper}>
-          <Text style={styles.cellText}>{cell}</Text>
-        </View>
-      ))}
+ const renderRow = ({ item, index }) => (
+  <View
+    style={[
+      styles.tableRow,
+      index % 2 === 0 ? styles.rowEven : styles.rowOdd,
+    ]}
+  >
+    <View style={styles.cellWrapper}>
+      <Text style={styles.cellText}>{index + 1}</Text>
     </View>
-  );
+    {item.map((cell, cellIndex) => (
+      <View key={cellIndex} style={styles.cellWrapper}>
+        <Text style={styles.cellText}>{cell}</Text>
+      </View>
+    ))}
+  </View>
+);
+
+  ;
 
   return (
     <View style={styles.container}>
-      {headers.length > 0 && (
+      {headers.length > 0 ? (
         <>
           <View style={styles.headerContainer}>
             <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
@@ -226,12 +235,13 @@ const downloadEstimateExcel = async (estimateData) => {
                 <View style={[styles.cellWrapper, { flex: 0.5 }]}>
                   <Text style={styles.headerText}>Sr No.</Text>
                 </View>
-                {headers.map((header, index) => (
-                  
-                  <View key={index} style={styles.cellWrapper}>
-                    <Text style={styles.headerText}>{header}</Text>
-                  </View>
-                ))}
+                {headers
+                  .filter(header => header !== 'id' && header !== 'client') // exclude here too
+                  .map((header, index) => (
+                    <View key={index} style={styles.cellWrapper}>
+                      <Text style={styles.headerText}>{header}</Text>
+                    </View>
+                  ))}
               </View>
 
 
@@ -266,6 +276,10 @@ const downloadEstimateExcel = async (estimateData) => {
             </TouchableOpacity>
           </View>
         </>
+      ) : (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={styles.heading}>No Estimate Data Found</Text>
+        </View>
       )}
 
       {loading && (

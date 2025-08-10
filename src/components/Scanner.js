@@ -23,8 +23,8 @@ export default function QRScannerScreen({ navigation }) {
   }, []);
   const handleScan = (event) => {
     const scannedValue = event?.nativeEvent?.codeStringValue?.trim();
-    console.log('scannedValue',scannedValue);
-    
+    console.log('scannedValue', scannedValue);
+
     if (!scannedValue) {
       console.log('❌ No scanned value');
       return;
@@ -33,20 +33,28 @@ export default function QRScannerScreen({ navigation }) {
     let cleanValue = "";
 
     if (scannedValue.includes("|")) {
-      // Pipe-separated → take the part starting with 'S'
+      // Pipe-separated
       const parts = scannedValue.split("|");
       console.log(parts);
-      
-      cleanValue =parts[1];
+
+      cleanValue = parts[1];
     }
     else if (scannedValue.includes("_")) {
-      // Pipe-separated → take the part starting with 'S'
-      const parts = scannedValue.split("_");
-      console.log(parts);
-      
-      cleanValue =parts[0];
-    } 
-    // Ensure only alphanumeric characters (safety)
+
+      if (scannedValue.includes("-")) {
+        const parts = scannedValue.split("-");
+       console.log(parts,"-");
+        cleanValue = parts[0]; (parts);
+      } else {
+        // Pipe-separated
+        const parts = scannedValue.split("_");
+       console.log(parts,"_");
+        cleanValue = parts[0]; (parts);
+      }
+
+
+    }
+ 
     cleanValue = cleanValue.replace(/[^A-Za-z0-9]/g, "");
 
     console.log('📸 Scanned:', cleanValue);

@@ -18,7 +18,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 const UploadedOrder = ({ navigation }) => {
     const { height: windowHeight } = useWindowDimensions();
-    const selectedClient = useSelector((state) => state.clientData.selectedClient);
+    const selectedClient = useSelector((state) => state?.clientData?.selectedClient);
 
 
 
@@ -45,7 +45,7 @@ const UploadedOrder = ({ navigation }) => {
             console.log('order data ======>', data);
 
             if (!Array.isArray(data) || data.length === 0) {
-                Alert.alert('No Data', 'No order items found for this client.');
+              
                 return;
             }
 
@@ -125,7 +125,7 @@ const UploadedOrder = ({ navigation }) => {
     );
     return (
         <View style={styles.container}>
-            {headers.length > 0 && (
+            {headers.length > 0 ? (
                 <>
                     <View style={styles.headerContainer}>
                         <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
@@ -135,9 +135,9 @@ const UploadedOrder = ({ navigation }) => {
                             <Text style={styles.heading}>Order List</Text>
                         </View>
                     </View>
+
                     <ScrollView horizontal>
                         <View>
-
                             <View style={styles.tableRowHeader}>
                                 {headers.map((header, index) => (
                                     <View key={index} style={styles.cellWrapper}>
@@ -145,7 +145,6 @@ const UploadedOrder = ({ navigation }) => {
                                     </View>
                                 ))}
                             </View>
-
 
                             <FlatList
                                 data={rows}
@@ -156,33 +155,41 @@ const UploadedOrder = ({ navigation }) => {
                             />
                         </View>
                     </ScrollView>
+
+                    <View style={styles.buttonRow}>
+                        {asstimate ? (
+                            <TouchableOpacity
+                                style={styles.pickButton}
+                                disabled={loading}
+                                onPress={() => navigation.navigate('Estimate')}
+                            >
+                                <Text style={styles.buttonText}>Go to Estimate</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity
+                                style={[styles.uploadButton, { backgroundColor: 'rgba(16, 231, 27, 1)' }]}
+                                disabled={loading}
+                                onPress={generateEstimate}
+                            >
+                                <Text style={styles.uploadButtonText}>Generate Estimate</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 </>
+            ) : (
+                // Show centered "No Data Found" when no headers
+                <View
+                    style={{
+                        flex: 1,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                    }}
+                >
+                    <Text style={{ fontSize: 20, fontWeight: 'bold' }}>No Data Found</Text>
+                     <Text style={{ fontSize: 20, fontWeight: 'bold' }}>Please Upload Order</Text>
+                </View>
+
             )}
-            <View style={styles.buttonRow}>
-                {asstimate && (
-                    <TouchableOpacity
-                        style={styles.pickButton}
-                        disabled={loading}
-                        onPress={() => navigation.navigate('EstimateScreen')}
-                    >
-                        <Text style={styles.buttonText}>Go to Estimate</Text>
-                    </TouchableOpacity>
-                )}
-
-                {!asstimate && (
-                    <TouchableOpacity
-                        style={[
-                            styles.uploadButton,
-                            { backgroundColor: 'rgba(16, 231, 27, 1)' },
-                        ]}
-                        disabled={loading}
-                        onPress={generateEstimate} // Call API to generate estimate
-                    >
-                        <Text style={styles.uploadButtonText}>Generate Estimate</Text>
-                    </TouchableOpacity>
-                )}
-            </View>
-
 
             {loading && (
                 <View style={styles.loadingOverlay}>
@@ -192,6 +199,7 @@ const UploadedOrder = ({ navigation }) => {
             )}
         </View>
     );
+
 };
 
 const styles = StyleSheet.create({
@@ -214,6 +222,14 @@ const styles = StyleSheet.create({
         flex: 1,
         color: '#333',
     },
+    absoluteFill: {
+        position: 'absolute',
+        top: 0, m: 0,
+        left: 0,
+        right: 0,
+        botto: 0
+    },
+
     subtext: {
         fontSize: 16,
         color: '#666',

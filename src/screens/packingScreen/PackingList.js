@@ -24,13 +24,15 @@ const DisplayPackingList = () => {
   const [hasError, setHasError] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageInput, setPageInput] = useState(""); // 👈 New state for jump-to-page
+  const [qrvalue, setQrvalue] = useState(""); // 👈 New state for jump-to-page
+  const [caseNoStart, setCaseNoStart] = useState(1); // 👈 New state for jump-to-page
   const navigation = useNavigation();
   const itemsPerPage = 30;
 
   const { generateExcelFile, shareExcelFile } = useExcelExporter();
   const selectedClient = useSelector((state) => state.clientData.selectedClient);
-  const client = selectedClient.client_name;
-  const marka = selectedClient.marka;
+  const client = selectedClient?.client_name;
+  const marka = selectedClient?.marka;
 
   const headers = [
     { label: "Sr. No.", key: "sr_no", width: 60 },
@@ -290,6 +292,35 @@ processedData.push(totalsRowObject);
       Alert.alert("Error", "Failed to share Excel file.");
     }
   };
+  
+
+const handleQrGenerate = () => {
+  if (!data || data.length === 0) return;
+
+  setQrvalue(data[0]?.part_no + '|' + data[0]?.description + '|' + data[0]?.packed_in_plastic_bag);
+  let currentCaseNo = data[0]?.case_no_start;
+
+  for (let i = 1; i < data.length; i++) {
+    if (currentCaseNo === data[i]?.case_no_start) {
+      setQrvalue(prev => prev + data[i]?.part_no + '|' + data[i]?.description + '|' + data[i]?.packed_in_plastic_bag);
+    } else {
+      generateQR(); // Assuming you meant generateQR, not genrateQR
+      currentCaseNo = data[i]?.case_no_start;
+      setQrvalue(data[i]?.part_no + '|' + data[i]?.description + '|' + data[i]?.packed_in_plastic_bag);
+    }
+  }
+
+  generateQR(); // Ensure QR is generated after loop
+};
+  const generateQR = () => {
+if (!qrvalue) {
+  
+}
+    
+   }
+
+
+
 
   const renderRow = ({ item, index }) => {
     const isTotalsRow = index === tableData.length;

@@ -12,9 +12,9 @@ import {
   Modal
 } from 'react-native';
 import { useSelector } from 'react-redux';
-import ClientSelection from '../../components/ClintSelection';
-import API from '../../components/API';
-import { useExcelExporter } from "../../components/useExcelExporter";
+import ClientSelection from '../../../components/ClintSelection';
+import API from '../../../components/API';
+import { useExcelExporter } from "../../../components/useExcelExporter";
 import ExcelJS from 'exceljs';
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
@@ -259,38 +259,65 @@ const ProformaInvoice = ({ navigation, pdfBase64, excelBase64 }) => {
       directory: 'Documents'
     };
 
-    const pdfFile = await RNHTMLtoPDF.convert(options);
+
+    const pdfFile = await RNHTMLtoPDF.convert({
+      html: htmlContent,
+      fileName: `ProformaInvoice_${Date.now()}`,
+      directory: 'Documents', // stays in app's private dir
+    });
+
+    if (!pdfFile || !pdfFile.filePath) {
+      Alert.alert('Error', 'PDF generation failed. Please try again.');
+      return;
+    }
+    const normalizePath = (path) => {
+      if (!path) return null;
+      return path.startsWith('file://') ? path : `file://${path}`;
+    };
 
     if (mode === 'download') {
-
       const fileName = `ProformaInvoice_${Date.now()}.pdf`;
       const downloadPath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
 
-      // Write PDF content to public download folder
-      await RNFS.copyFile(pdfFile.filePath, downloadPath);
-
-      // Scan file so it appears in file managers
-      if (RNFS.scanFile) {
-        await RNFS.scanFile(downloadPath);
+      // Android <30 requires WRITE_EXTERNAL_STORAGE permission
+      if (Platform.OS === 'android' && Platform.Version < 30) {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+        );
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          Alert.alert('Permission Denied', 'Cannot save PDF without storage permission.');
+          return;
+        }
       }
 
-      // Check file exists
+      await RNFS.copyFile(pdfFile.filePath, downloadPath);
+
+      if (RNFS.scanFile) await RNFS.scanFile(downloadPath);
+
       const exists = await RNFS.exists(downloadPath);
       if (!exists) throw new Error('File not found after writing');
 
       Alert.alert('Download Successful', `PDF saved to:\n${downloadPath}`);
-      setModalVisible(false)
-
+      setModalVisible(false);
     } else {
-      setModalVisible(false)
+      setModalVisible(false);
+      const cacheSharePath = `${RNFS.CachesDirectoryPath}/share_${Date.now()}.pdf`;
+      await RNFS.copyFile(pdfFile.filePath, cacheSharePath);
+
+      const sharePath = normalizePath(cacheSharePath);
+
+      if (!sharePath) {
+        Alert.alert('Error', 'Invalid share path.');
+        return;
+      }
+
       await Share.open({
-        url: `file://${pdfFile.filePath}`,
+        url: sharePath,
         type: 'application/pdf',
         failOnCancel: false,
-
       });
-
     }
+
   };
 
 
@@ -324,7 +351,7 @@ const ProformaInvoice = ({ navigation, pdfBase64, excelBase64 }) => {
       titleCell.value = 'Proforma Invoice';
       titleCell.font = { bold: true, size: 20 };
       titleCell.alignment = { horizontal: 'center', vertical: 'center' };
-     
+
 
       // === Exporter / Buyer Rows ===
       const maxRows = Math.max(exporter.rows.length, buyer.rows.length);
@@ -335,7 +362,7 @@ const ProformaInvoice = ({ navigation, pdfBase64, excelBase64 }) => {
         worksheet.mergeCells(currentRow + i, 1, currentRow + i, 3);
         worksheet.getCell(currentRow + i, 1).value = exporter.rows[i] || '';
         worksheet.getCell(currentRow + i, 1).alignment = { vertical: 'middle', horizontal: 'left' };
-         worksheet.getCell(currentRow + i, 1).border = {
+        worksheet.getCell(currentRow + i, 1).border = {
           top: { style: 'thin' },
           bottom: { style: 'thin' },
           left: { style: 'thin' },
@@ -363,11 +390,11 @@ const ProformaInvoice = ({ navigation, pdfBase64, excelBase64 }) => {
       partsCell.font = { bold: true, size: 14 };
       partsCell.alignment = { horizontal: 'center', vertical: 'center' };
       partsCell.border = {
-          top: { style: 'thin' },
-          bottom: { style: 'thin' },
-          left: { style: 'thin' },
-          right: { style: 'thin' },
-        };
+        top: { style: 'thin' },
+        bottom: { style: 'thin' },
+        left: { style: 'thin' },
+        right: { style: 'thin' },
+      };
 
       // === Table headers ===
       const headerRowIndex = currentRow + 2;
@@ -381,7 +408,7 @@ const ProformaInvoice = ({ navigation, pdfBase64, excelBase64 }) => {
           left: { style: 'thin' },
           right: { style: 'thin' },
         };
-         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'CCE5FF' } }; // light blue
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'CCE5FF' } }; // light blue
       });
 
       // === Table rows ===
@@ -474,35 +501,35 @@ const ProformaInvoice = ({ navigation, pdfBase64, excelBase64 }) => {
       try {
         let filePath;
 
-        if (mode === 'download') {
-          // Define filePath for both platforms
-          if (Platform.OS === 'android') {
-            filePath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
-            if (Platform.Version < 30) {
-              const granted = await PermissionsAndroid.request(
-                PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
-              );
-              if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-                Alert.alert('Permission Denied', 'Cannot save file without storage permission.');
-                return;
-              }
+        if (Platform.OS === 'android') {
+          filePath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
+          if (Platform.Version < 30) {
+            const granted = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+            );
+            if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+              Alert.alert('Permission Denied', 'Cannot save file without storage permission.');
+              return;
             }
-          } else {
-            filePath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
           }
+        } else {
+          filePath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
+        }
 
-          await RNFS.writeFile(filePath, base64, 'base64');
-          if (RNFS.scanFile) await RNFS.scanFile(filePath);
+        // Write the file once regardless of mode
+        await RNFS.writeFile(filePath, base64, 'base64');
+        if (RNFS.scanFile) await RNFS.scanFile(filePath);
 
+        if (mode === 'download') {
           Alert.alert('Download Successful', `Invoice saved to:\n${filePath}`);
         } else {
-          // For sharing, use the same `fileUri` we wrote earlier
           await Share.open({
-            url: `file://${fileUri}`,
+            url: `file://${filePath}`, // FIX: use filePath here
             type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             failOnCancel: false,
           });
         }
+
       } catch (err) {
         console.error('Excel generation error:', err);
         Alert.alert('Error', 'Failed to save or share the file.');

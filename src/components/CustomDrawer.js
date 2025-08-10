@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import Icon from 'react-native-vector-icons/Feather';
 
 const buttons = [
+  { title: 'Home', screen: 'Home', color: '#2563EB', icon: 'home' },
   { title: 'Order Upload', screen: 'OrderUpload', color: '#2563EB', icon: 'upload-cloud' },
   { title: 'Order Update', screen: 'OrderUpdate', color: '#2563EB', icon: 'edit' },
   { title: 'Orders', screen: 'UploadedOrder', color: '#2563EB', icon: 'file-text' },

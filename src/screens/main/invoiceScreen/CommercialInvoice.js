@@ -12,16 +12,16 @@ import {
   Modal
 } from 'react-native';
 import { useSelector } from 'react-redux';
-import ClientSelection from '../../components/ClintSelection';
-import API from '../../components/API';
-import { useExcelExporter } from "../../components/useExcelExporter";
+import ClientSelection from '../../../components/ClintSelection';
+import API from '../../../components/API';
+import { useExcelExporter } from "../../../components/useExcelExporter";
 import { Linking } from 'react-native';
 import * as ExcelJS from 'exceljs';
 import RNFS from 'react-native-fs';
 import Share from 'react-native-share';
 import { Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import DownloadModal from '../../components/DownloadModal';
+import DownloadModal from '../../../components/DownloadModal';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 
 const CommercialInvoice = ({ navigation, pdfBase64, excelBase64 }) => {

@@ -35,7 +35,7 @@ const RowPackingList = ({ navigation }) => {
   const [selectedItem, setSelectedItem] = useState(null);
 
   const { height: windowHeight } = useWindowDimensions();
-  const selectedClient = useSelector((state) => state.clientData.selectedClient);
+  const selectedClient = useSelector((state) => state?.clientData?.selectedClient);
   const PackingType = useSelector((state) => state.packing.PackingType);
 
   const client = selectedClient?.client_name;

@@ -31,10 +31,8 @@ const ClientSelection = () => {
       dispatch(fetchClients());
       console.log('clients', clients);
 
-
     }, [dispatch])
   );
- console.log('clients', clients);
 
   const handleAddClient = async () => {
     if (!clientName.trim() || !clientCountry.trim() || !clientMArka.trim()) {

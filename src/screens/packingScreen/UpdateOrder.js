@@ -13,7 +13,7 @@ import {
     TextInput
 } from 'react-native';
 import { pick, types } from '@react-native-documents/picker';
- import * as ExcelJS from 'exceljs';
+import * as ExcelJS from 'exceljs';
 import RNFS from 'react-native-fs';
 import API from '../../components/API';
 import { useSelector } from 'react-redux';
@@ -22,7 +22,7 @@ import Checklist from '../../components/Checklist';
 
 const UpdateOrder = ({ navigation }) => {
     const { height: windowHeight } = useWindowDimensions();
-    const selectedClient = useSelector((state) => state.clientData.selectedClient);
+    const selectedClient = useSelector((state) => state?.clientData?.selectedClient);
     const marka = selectedClient.marka;
     const client = selectedClient.client_name;
     const [headers, setHeaders] = useState([]);
@@ -36,71 +36,74 @@ const UpdateOrder = ({ navigation }) => {
     const [description, setDescription] = useState('');
     const [qty, setQty] = useState('');
 
+
+
+
     /** File picker **/
-  
-const handleFilePick = async () => {
-  try {
-    setLoading(true);
 
-    const res = await pick({
-      allowMultiSelection: false,
-      type: [types.xlsx, types.xls],
-    });
+    const handleFilePick = async () => {
+        try {
+            setLoading(true);
 
-    if (!res || !res[0]) {
-      Alert.alert('No file selected');
-      return;
-    }
+            const res = await pick({
+                allowMultiSelection: false,
+                type: [types.xlsx, types.xls],
+            });
 
-    const file = res[0];
-    setSelectedFile(file);
+            if (!res || !res[0]) {
+                Alert.alert('No file selected');
+                return;
+            }
 
-    // Remove file:// prefix for RNFS
-    const filePath = file.uri.replace('file://', '');
-    const b64 = await RNFS.readFile(filePath, 'base64');
+            const file = res[0];
+            setSelectedFile(file);
 
-    // Decode Base64 → ArrayBuffer
-    const binary = global.atob(b64);
-    const buffer = new ArrayBuffer(binary.length);
-    const view = new Uint8Array(buffer);
-    for (let i = 0; i < binary.length; i++) {
-      view[i] = binary.charCodeAt(i);
-    }
+            // Remove file:// prefix for RNFS
+            const filePath = file.uri.replace('file://', '');
+            const b64 = await RNFS.readFile(filePath, 'base64');
 
-    // Load workbook via ExcelJS
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer);
+            // Decode Base64 → ArrayBuffer
+            const binary = global.atob(b64);
+            const buffer = new ArrayBuffer(binary.length);
+            const view = new Uint8Array(buffer);
+            for (let i = 0; i < binary.length; i++) {
+                view[i] = binary.charCodeAt(i);
+            }
 
-    const worksheet = workbook.worksheets[0];
-    if (!worksheet) {
-      Alert.alert('Error', 'No worksheet found in file');
-      return;
-    }
+            // Load workbook via ExcelJS
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(buffer);
 
-    // Convert worksheet rows to JSON-like structure
-    const rows = [];
-    worksheet.eachRow({ includeEmpty: true }, (row) => {
-      rows.push(row.values.slice(1)); // Remove first empty index
-    });
+            const worksheet = workbook.worksheets[0];
+            if (!worksheet) {
+                Alert.alert('Error', 'No worksheet found in file');
+                return;
+            }
 
-    if (rows.length === 0) {
-      Alert.alert('No data found in file');
-      return;
-    }
+            // Convert worksheet rows to JSON-like structure
+            const rows = [];
+            worksheet.eachRow({ includeEmpty: true }, (row) => {
+                rows.push(row.values.slice(1)); // Remove first empty index
+            });
 
-    const headerRow = rows[0].map(h => h?.toString() || '');
-    const rowData = rows.slice(1);
+            if (rows.length === 0) {
+                Alert.alert('No data found in file');
+                return;
+            }
 
-    setHeaders(headerRow);
-    setRows(rowData);
-    setProceeded(false); // reset checklist
-  } catch (err) {
-    console.error('Error reading file:', err);
-    Alert.alert('Error', 'Could not read or parse file');
-  } finally {
-    setLoading(false);
-  }
-};
+            const headerRow = rows[0].map(h => h?.toString() || '');
+            const rowData = rows.slice(1);
+
+            setHeaders(headerRow);
+            setRows(rowData);
+            setProceeded(false); // reset checklist
+        } catch (err) {
+            console.error('Error reading file:', err);
+            Alert.alert('Error', 'Could not read or parse file');
+        } finally {
+            setLoading(false);
+        }
+    };
 
 
     const buildFormData = () => {
@@ -138,12 +141,17 @@ const handleFilePick = async () => {
             });
             if (estimateRes.status !== 200) throw new Error('Estimate fetch failed');
             console.log("step asstimate clear", estimateRes.data.missing_data);
-            if (estimateRes.data?.missing_data) {
+            if (estimateRes.data?.missing_data && estimateRes.data.missing_data.length > 0) {
                 const missing = Array.isArray(estimateRes.data.missing_data)
                     ? estimateRes.data.missing_data.join('\n') // each on new line
                     : String(estimateRes.data.missing_data);
 
-                Alert.alert('The part number mentioned below is no longer serviceable please note this part no.', missing);
+                Alert.alert(
+                    null,
+                    `The part number mentioned below is no longer serviceable.\n\nPlease note this part no.\n${missing}`
+                );
+
+
             }
             // 3. Sync stock once here
             await API.post('/api/packing/packing/sync-stock/');

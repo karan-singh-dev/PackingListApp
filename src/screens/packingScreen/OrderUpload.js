@@ -141,14 +141,19 @@ const OrderUpload = ({ navigation }) => {
         setHeaders([]);
         setRows([]);
         setSelectedFile(null);
-        navigation.navigate('Estimate');
-      } else if (res.data?.missing_data) {
-         setLoading(false)
-        const missing = Array.isArray(res.data.missing_data)
-          ? res.data.missing_data.join('\n') // each on new line
-          : String(res.data.missing_data);
+        if (res.data?.missing_data && res.data.missing_data.length > 0) {
+          setLoading(false)
+          const missing = Array.isArray(res.data.missing_data)
+            ? res.data.missing_data.join('\n') // each on new line
+            : String(res.data.missing_data);
 
-        Alert.alert('The part number mentioned below is no longer serviceable please note this part no.', missing);
+          Alert.alert(
+            null,
+            `The part number mentioned below is no longer serviceable.\n\nPlease note this part no.\n${missing}`
+          );
+        }
+        navigation.navigate('Estimate');
+
       }
       else {
         setLoading(false)

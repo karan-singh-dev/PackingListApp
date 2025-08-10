@@ -19,11 +19,16 @@ import DisplayPackingList from '../screens/packingScreen/PackingList';
 import UpdateOrder from '../screens/packingScreen/UpdateOrder';
 import UploadedOrder from '../screens/packingScreen/UploadedOrder';
 import Home from '../screens/packingScreen/Home';
-import CommercialInvoice from '../screens/invoiceScreen/CommercialInvoice';
-import PerformaInvoice from '../screens/invoiceScreen/PerformaInvoice';
+import CommercialInvoice from '../screens/main/invoiceScreen/CommercialInvoice';
+import PerformaInvoice from '../screens/main/invoiceScreen/PerformaInvoice';
 import QRScannerScreen from '../components/Scanner';
 import SeperatePacking from '../components/SeperatePacking';
 import MixPacking from '../components/MixPacking';
+import CBMCalculator from '../screens/main/Cbm';
+import MrpDetailS from '../screens/main/MrpDetail';
+import UpdateMainStocks from '../screens/main/invoiceScreen/UpdateMainStocks';
+import MainStockList from '../screens/main/invoiceScreen/MainStockList';
+import Gst from '../screens/main/Gst';
 
 const Stack = createNativeStackNavigator();
 
@@ -56,6 +61,12 @@ export default function AppNavigator() {
             <Stack.Screen name="QRScannerScreen" component={QRScannerScreen} />
             <Stack.Screen name="SeperatePacking" component={SeperatePacking} />
             <Stack.Screen name="MixPacking" component={MixPacking} />
+            <Stack.Screen name="CBM" component={CBMCalculator} />
+            <Stack.Screen name="Gst" component={Gst} />
+            <Stack.Screen name="Mrp" component={MrpDetailS} />
+            <Stack.Screen name="UpdateMainStocks" component={UpdateMainStocks} />
+            <Stack.Screen name="MainStockList" component={MainStockList} />
+
           </>
         )}
       </Stack.Navigator>
