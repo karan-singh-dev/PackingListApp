@@ -14,6 +14,7 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import API from '../../components/API'; // Use your centralized API instance
+import { useSelector } from 'react-redux';
 
 const deviceHeight = Dimensions.get('window').height;
 
@@ -21,7 +22,11 @@ const StockList = () => {
   const [stockData, setStockData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [updatePartNo, setUpdatePartNo] = useState(null);
+  const [updateQty, setUpdateQty] = useState('');
   const navigation = useNavigation();
+ const user =useSelector(state => state.userInfo.user)
+
 
   const fetchStockData = async () => {
     try {
@@ -46,6 +51,32 @@ const StockList = () => {
   );
 
 
+  // Handle stock update
+const handleUpdate = async (part_no) => {
+  const qtyValue = parseInt(updateQty, 10);
+  if (isNaN(qtyValue)) {
+    Alert.alert("Invalid Quantity", "Please enter a valid number.");
+    return;
+  }
+
+  try {
+    const response = await API.post("/api/packing/stock/update-qty/", {
+      part_no,
+      qty: qtyValue,
+    });
+
+    Alert.alert("Update Stock", response.data.message);
+    setUpdatePartNo(null);
+    setUpdateQty("");
+    fetchStockData(); // make sure this matches your actual fetch function
+  } catch (error) {
+    Alert.alert("Error", "Failed to update stock.");
+    console.error(error);
+  }
+};
+
+
+
 
   const filteredData = useMemo(() => {
     if (!searchQuery) return stockData;
@@ -59,9 +90,13 @@ const StockList = () => {
 
   const renderTableHeader = () => (
     <View style={[styles.row, styles.headerRow]}>
-      <Text style={[styles.cell, styles.headerCell, { width: 120 }]}>Part Number</Text>
+      <Text style={[styles.cell, styles.headerCell, { width: 120 }]}>Part No</Text>
       <Text style={[styles.cell, styles.headerCell, { width: 200 }]}>Description</Text>
       <Text style={[styles.cell, styles.headerCell, { width: 90 }]}>Qty</Text>
+      <Text style={[styles.cell, styles.headerCell, { width: 90 }]}>Brand</Text>
+      {user.is_staff ? (
+        <Text style={[styles.cell, styles.headerCell, { width: 150 }]}>Update</Text>
+      ) : null}
     </View>
   );
 
@@ -75,12 +110,48 @@ const StockList = () => {
       <Text style={[styles.cell, { width: 120 }]}>{item.part_no || 'N/A'}</Text>
       <Text style={[styles.cell, { width: 200 }]}>{item.description || 'N/A'}</Text>
       <Text style={[styles.cell, { width: 90 }]}>{item.qty?.toString() || '0'}</Text>
+      <Text style={[styles.cell, { width: 90 }]}>{item.brand_name || 'N/A'}</Text>
+
+      {user.is_staff ? (
+        <View style={[styles.cell, { width: 150, alignItems: 'center' }]}>
+          {updatePartNo === item.part_no ? (
+            <View style={{ alignItems: 'center' }}>
+              <TextInput
+                keyboardType="numeric"
+                style={styles.updateInput}
+                value={updateQty}
+                onChangeText={setUpdateQty}
+              />
+              <TouchableOpacity
+                style={[styles.updateButton, { backgroundColor: '#3b82f6' }]}
+                onPress={() => handleUpdate(item.part_no)}
+              >
+                <Text style={styles.updateButtonText}>Update Stock</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setUpdatePartNo(null);
+                  setUpdateQty('');
+                }}
+              >
+                <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[styles.updateButton, { backgroundColor: '#22c55e' }]}
+              onPress={() => setUpdatePartNo(item.part_no)}
+            >
+              <Text style={styles.updateButtonText}>Update</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : null}
     </View>
   );
 
   return (
     <View style={styles.container}>
-
       <View style={styles.headerContainer}>
         <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
           <Icon name="menu" size={30} color="#000" />
@@ -89,9 +160,10 @@ const StockList = () => {
           <Text style={styles.heading}>📋 Stock List</Text>
         </View>
       </View>
+
       <TextInput
         placeholder="Search by Part Number or Description"
-        placeholderTextColor={"#ccc"}
+        placeholderTextColor="#ccc"
         value={searchQuery}
         onChangeText={setSearchQuery}
         style={styles.searchInput}
@@ -111,10 +183,6 @@ const StockList = () => {
               renderItem={renderTableRow}
               style={styles.table}
               contentContainerStyle={{ paddingBottom: 100 }}
-              initialNumToRender={20}
-              maxToRenderPerBatch={30}
-              windowSize={10}
-              removeClippedSubviews={true}
             />
           </View>
         </ScrollView>
@@ -173,6 +241,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
+  updateInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    marginBottom: 4,
+    width: 100,
+    textAlign: 'center',
+    borderRadius: 4
+  },
+  updateButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4
+  },
+  updateButtonText: {
+    color: '#fff',
+    fontSize: 12
+  }
+
 });
 
 export default StockList;

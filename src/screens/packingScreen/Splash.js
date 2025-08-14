@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Image } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient'; // install if not already
 
 const Splash = () => {
     const fadeAnim = useRef(new Animated.Value(0)).current;
+
     useEffect(() => {
         Animated.timing(fadeAnim, {
             toValue: 1,
@@ -20,17 +22,23 @@ const Splash = () => {
     }, [fadeAnim]);
 
     return (
-        <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-            <View style={styles.logoContainer}>
-                <Image
-                    source={require('../../assets/images/logo.png')}
-                    style={styles.logo}
-                    resizeMode="contain" />
-            </View>
-            <Text style={styles.title}>PackingList Pro</Text>
-            <Text style={styles.subtitle}>
-                Simplifying Import & Export Operations
-            </Text>
+        <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+            <LinearGradient
+                colors={['#0072BC', '#004080']}
+                style={styles.container}
+            >
+                <View style={styles.logoContainer}>
+                    <Image
+                        source={require('../../assets/images/logo.png')} // your new icon (1024x1024 recommended)
+                        style={styles.logo}
+                        resizeMode="contain"
+                    />
+                </View>
+                <Text style={styles.title}>GlobePact</Text>
+                <Text style={styles.subtitle}>
+                    Simplifying Global Trade
+                </Text>
+            </LinearGradient>
         </Animated.View>
     );
 };
@@ -40,32 +48,30 @@ export default Splash;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#012B4B',
         justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: 20,
     },
     logoContainer: {
         marginBottom: 20,
-        backgroundColor: '#fff',
         padding: 15,
         borderRadius: 20,
-        elevation: 10,
+        backgroundColor: 'rgba(255,255,255,0.1)',
     },
     logo: {
-        width: 100,
-        height: 100,
+        width: 140,
+        height: 140,
     },
     title: {
-        fontSize: 32,
+        fontSize: 30,
         fontWeight: '700',
-        color: '#F8C630',
-        marginBottom: 10,
+        color: '#FFFFFF',
+        marginBottom: 8,
         textAlign: 'center',
     },
     subtitle: {
         fontSize: 16,
-        color: '#E0E0E0',
+        color: '#B0D9F6',
         textAlign: 'center',
     },
 });

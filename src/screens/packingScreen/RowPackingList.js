@@ -77,6 +77,7 @@ console.log('packing data ======>',  client, marka);
         params: { client, marka },
       });
       setData(response.data);
+      console.log(response.data, 'rowPacking Data');
     } catch (error) {
       console.error('Data fetch error:', error);
       setHasError(true);

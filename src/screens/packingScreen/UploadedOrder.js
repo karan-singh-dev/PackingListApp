@@ -9,7 +9,7 @@ import {
     StyleSheet,
     useWindowDimensions,
     FlatList,
-    Modal, TextInput
+    TextInput,
 } from 'react-native';
 import API from '../../components/API';
 import { useSelector } from 'react-redux';
@@ -20,39 +20,44 @@ const UploadedOrder = ({ navigation }) => {
     const { height: windowHeight } = useWindowDimensions();
     const selectedClient = useSelector((state) => state?.clientData?.selectedClient);
 
-
-
     const marka = selectedClient.marka;
     const client = selectedClient.client_name;
-
 
     const [headers, setHeaders] = useState([]);
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(false);
     const [asstimate, setAstimate] = useState(false);
 
-
+    const [updatePartNo, setUpdatePartNo] = useState(null);
+    const [updateQty, setUpdateQty] = useState('');
+    const user = useSelector(state => state.userInfo.user)
 
     const fetchDataFromAPI = async () => {
         try {
             setLoading(true);
 
-            // Fetch order items
             const response = await API.get(`/api/orderitem/items/`, {
                 params: { client_name: client, marka },
             });
             const data = response.data;
-            console.log('order data ======>', data);
-
+            console.log('Fetched Data:', data);
+            setLoading(false);
             if (!Array.isArray(data) || data.length === 0) {
-              
+                setHeaders([]);
+                setRows([]);
                 return;
             }
 
-            const extractedHeaders = ['part_no', 'description', 'qty'];
-            const extractedRows = data.map(item =>
-                extractedHeaders.map(key => item[key] ?? '')
-            );
+            // Add "Action" column for update button
+            let extractedHeaders = ['part_no', 'description', 'qty'];
+            if (user?.is_staff) {
+                extractedHeaders.push('Action');
+            }
+            const extractedRows = data.map(item => [
+                item.part_no ?? '',
+                item.description ?? '',
+                item.qty ?? '',
+            ]);
             setHeaders(extractedHeaders);
             setRows(extractedRows);
 
@@ -61,14 +66,7 @@ const UploadedOrder = ({ navigation }) => {
                 params: { client_name: client, marka },
             });
             const newdata = res.data;
-            console.log('estimate data ======>', newdata);
-
-            // If estimate data exists → setAstimate(true)
-            if (Array.isArray(newdata) && newdata.length > 0) {
-                setAstimate(true);
-            } else {
-                setAstimate(false);
-            }
+            setAstimate(Array.isArray(newdata) && newdata.length > 0);
 
         } catch (error) {
             console.error('API Fetch Error:', error.response?.data || error.message);
@@ -80,49 +78,106 @@ const UploadedOrder = ({ navigation }) => {
 
     useFocusEffect(
         useCallback(() => {
-            fetchDataFromAPI()
+            fetchDataFromAPI();
         }, [client, marka])
     );
 
     const generateEstimate = async () => {
-        console.log(client, marka)
         try {
-            setLoading(true)
-            const res = await API.post('/api/asstimate/genrate/', {
-                client_name: client,
-                marka: marka,
+            setLoading(true);
+            const response = await API.get(`/api/asstimate/`, {
+                params: { client_name: client, marka },
             });
 
             if (res.status === 200) {
-                console.log('hello', res);
                 navigation.navigate('Estimate');
-
             } else {
-                setLoading(false)
                 Alert.alert('Error', 'Failed to generate estimate');
             }
         } catch (error) {
-            setLoading(false)
             console.error('Estimate error:', error);
             Alert.alert('Error', 'Could not generate estimate');
+        } finally {
+            setLoading(false);
         }
     };
 
+    const handleUpdate = async (part_no) => {
+        console.log(part_no,' part_no');
+        const qtyValue = parseInt(updateQty, 10);
+        if (isNaN(qtyValue)) {
+            Alert.alert('Invalid Quantity', 'Please enter a valid number.');
+            return;
+        }
 
-    const renderRow = ({ item, index }) => (
-        <View
-            style={[
-                styles.tableRow,
-                index % 2 === 0 ? styles.rowEven : styles.rowOdd,
-            ]}
-        >
-            {item.map((cell, cellIndex) => (
-                <View key={cellIndex} style={styles.cellWrapper}>
-                    <Text style={styles.cellText}>{cell}</Text>
-                </View>
-            ))}
-        </View>
-    );
+        try {
+            const response = await API.post("/api/orderitem/items/update-qty/", {
+                partNo: part_no,
+                qty: parseInt(updateQty),
+                client_name:client,
+                marka:marka,
+            });
+
+            Alert.alert('Update Stock', response.data.message);
+            setUpdatePartNo(null);
+            setUpdateQty('');
+            fetchDataFromAPI();
+        } catch (error) {
+            Alert.alert('Error', 'Failed to update order.');
+            console.error(error);
+        }
+    };
+
+    const renderRow = ({ item, index }) => {
+        const part_no = item[0];
+        const qty = item[2];
+
+        return (
+            <View
+                style={[
+                    styles.tableRow,
+                    index % 2 === 0 ? styles.rowEven : styles.rowOdd,
+                ]}
+            >
+                <View style={styles.cellWrapper}><Text style={styles.cellText}>{part_no}</Text></View>
+                <View style={styles.cellWrapper}><Text style={styles.cellText}>{item[1]}</Text></View>
+                <View style={styles.cellWrapper}><Text style={styles.cellText}>{qty}</Text></View>
+
+                {user.is_staff && (<View style={styles.cellWrapper}>
+                    {updatePartNo === part_no ? (
+                        <View style={{ flexDirection: 'row', gap: 5, alignItems: 'center' }}>
+                            <TextInput
+                                style={styles.updateInput}
+                                keyboardType="numeric"
+                                value={updateQty}
+                                onChangeText={setUpdateQty}
+                                placeholder="Qty"
+                                placeholderTextColor="#888"
+                            />
+                            <TouchableOpacity
+                                style={[styles.pickButton, { backgroundColor: '#28a745', marginLeft: 5 }]}
+                                onPress={() => handleUpdate(part_no)}
+                            >
+                                <Text style={{ color: '#fff', fontSize: 12 }}>Save</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                    ) : (
+                        <TouchableOpacity
+                            style={[styles.pickButton, { backgroundColor: '#007bff', padding: 5 }]}
+                            onPress={() => {
+                                setUpdatePartNo(part_no);
+                                setUpdateQty(String(qty));
+                            }}
+                        >
+                            <Text style={{ color: '#fff', fontSize: 12 }}>Update</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>)}
+            </View>
+        );
+    };
+
     return (
         <View style={styles.container}>
             {headers.length > 0 ? (
@@ -159,11 +214,11 @@ const UploadedOrder = ({ navigation }) => {
                     <View style={styles.buttonRow}>
                         {asstimate ? (
                             <TouchableOpacity
-                                style={styles.pickButton}
+                                style={styles.goEstimateButton}
                                 disabled={loading}
                                 onPress={() => navigation.navigate('Estimate')}
                             >
-                                <Text style={styles.buttonText}>Go to Estimate</Text>
+                                <Text style={styles.goEstimateText}>Go to Estimate</Text>
                             </TouchableOpacity>
                         ) : (
                             <TouchableOpacity
@@ -175,20 +230,13 @@ const UploadedOrder = ({ navigation }) => {
                             </TouchableOpacity>
                         )}
                     </View>
+
                 </>
             ) : (
-                // Show centered "No Data Found" when no headers
-                <View
-                    style={{
-                        flex: 1,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                    }}
-                >
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <Text style={{ fontSize: 20, fontWeight: 'bold' }}>No Data Found</Text>
-                     <Text style={{ fontSize: 20, fontWeight: 'bold' }}>Please Upload Order</Text>
+                    <Text style={{ fontSize: 20, fontWeight: 'bold' }}>Please Upload Order</Text>
                 </View>
-
             )}
 
             {loading && (
@@ -199,14 +247,10 @@ const UploadedOrder = ({ navigation }) => {
             )}
         </View>
     );
-
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
+    container: { flex: 1, backgroundColor: '#fff' },
     headerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -215,44 +259,9 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     menuButton: { marginRight: 10 },
-    heading: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        flex: 1,
-        color: '#333',
-    },
-    absoluteFill: {
-        position: 'absolute',
-        top: 0, m: 0,
-        left: 0,
-        right: 0,
-        botto: 0
-    },
-
-    subtext: {
-        fontSize: 16,
-        color: '#666',
-        textAlign: 'center',
-    },
-    centerMessageContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: '600',
-        marginVertical: 12,
-        textAlign: 'center',
-    },
-    tableRowHeader: {
-        flexDirection: 'row',
-        backgroundColor: '#2196F3',
-    },
-    tableRow: {
-        flexDirection: 'row',
-    },
+    heading: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', flex: 1, color: '#333' },
+    tableRowHeader: { flexDirection: 'row', backgroundColor: '#2196F3' },
+    tableRow: { flexDirection: 'row' },
     cellWrapper: {
         width: 150,
         padding: 10,
@@ -261,23 +270,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    rowEven: {
-        backgroundColor: '#f9f9f9',
-    },
-    rowOdd: {
-        backgroundColor: '#e6f2ff',
-    },
-    headerText: {
-        fontWeight: 'bold',
-        color: '#fff',
-        fontSize: 12,
-        textAlign: 'center',
-    },
-    cellText: {
-        fontSize: 12,
-        color: '#333',
-        textAlign: 'center',
-    },
+    rowEven: { backgroundColor: '#f9f9f9' },
+    rowOdd: { backgroundColor: '#e6f2ff' },
+    headerText: { fontWeight: 'bold', color: '#fff', fontSize: 12, textAlign: 'center' },
+    cellText: { fontSize: 12, color: '#333', textAlign: 'center' },
     buttonRow: {
         flexDirection: 'row',
         justifyContent: 'space-around',
@@ -285,12 +281,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
     },
     pickButton: {
-        flex: 1,
         backgroundColor: '#007bff',
-        padding: 12,
         borderRadius: 8,
         alignItems: 'center',
-        marginHorizontal: 5,
+        justifyContent: 'center',
     },
     uploadButton: {
         flex: 1,
@@ -300,11 +294,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginHorizontal: 5,
     },
-    buttonText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '600',
-    },
+    buttonText: { color: '#fff', fontSize: 14, fontWeight: '600' },
     loadingOverlay: {
         position: 'absolute',
         top: 0,
@@ -316,82 +306,50 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         zIndex: 999,
     },
-    uploadButtonText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    modalContent: {
-        width: '90%',
-        backgroundColor: '#fff',
-        padding: 20,
-        borderRadius: 10,
-    },
-    dropdown: {
-        borderColor: '#ccc',
-        borderWidth: 1,
-        borderRadius: 8,
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-        marginTop: 10,
-        width: '40%'
-    },
+    uploadButtonText: { color: '#fff', fontSize: 14, fontWeight: '600' },
     input: {
         borderColor: '#ccc',
         borderWidth: 1,
         borderRadius: 8,
+        paddingHorizontal: 5,
+    },
+    // In styles:
+    pickButton: {
+        backgroundColor: '#007bff',
         paddingHorizontal: 10,
-        marginTop: 5,
-    },
-    label: {
-        fontWeight: '600',
-        marginBottom: 4,
-    },
-    removeIcon: {
-        justifyContent: 'center',
+        paddingVertical: 6,
+        borderRadius: 6,
         alignItems: 'center',
-        paddingHorizontal: 6,
-    },
-    modalheading: {
-        marginBottom: 10,
-        fontSize: 18,
-        fontWeight: '600',
-        textAlign: 'center'
-    },
-    dollarBox: {
-        flexDirection: 'row',
-        marginTop: 10,
-        gap: 10,
         justifyContent: 'center',
-        alignItems: 'center',
-
     },
-    dollarmain: {
-        borderTopColor: '#ccc',
-        borderTopWidth: 1,
-        marginTop: 20,
-    },
-    dollerMainHeading: {
-        marginTop: 10,
-        fontSize: 16,
-        fontWeight: '600'
-    },
-    pickButtonText: {
-        padding: 10,
-        borderRadius: 8,
-        color: '#fff',
-        fontSize: 15,
-        fontWeight: 'bold',
+    updateInput: {
+        borderColor: '#ccc',        // Softer border so it blends with table
+        borderWidth: 1,
+        borderRadius: 4,
+        height: 36,
+        fontSize: 13,
         textAlign: 'center',
-    }
+        backgroundColor: '#f9f9f9', // Light background for subtle contrast
+        paddingHorizontal: 8,
+        color: '#333',
+        minWidth: 60,               // Prevents shrinking too small
+        marginRight: 6,             // Space between input & button
+    },
 
-
+    goEstimateButton: {
+        backgroundColor: '#007bff',
+        padding: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+        flex: 1,
+        marginHorizontal: 5,
+    },
+    goEstimateText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '600',
+    },
 
 });
+
 export default UploadedOrder;

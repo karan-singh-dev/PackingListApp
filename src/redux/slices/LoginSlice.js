@@ -30,6 +30,29 @@ export const loginUser = createAsyncThunk(
     }
 );
 
+export const logOutUser = createAsyncThunk(
+    "logout/logOutUser",
+    async (thunkAPI) => {
+        try {
+            const response = await API.post("/api/logout/", null, {
+                headers: { "Content-Type": "application/json" },
+            });
+
+
+            console.log("res", response);
+
+        } catch (error) {
+            console.log("Login error:", error.response?.data || error.message);
+            const message =
+                error.response?.data?.detail ||
+                error.response?.data?.message ||
+                error.message ||
+                "Login failed";
+            return thunkAPI.rejectWithValue(message);
+        }
+    }
+);
+
 const loginSlice = createSlice({
     name: 'login',
     initialState: {
@@ -42,9 +65,7 @@ const loginSlice = createSlice({
             state.Token = action.payload;
         },
         logout: (state) => {
-            state.Token = null;
-            AsyncStorage.removeItem("access_token");
-            AsyncStorage.removeItem("refresh_token");
+
         },
     },
     extraReducers: (builder) => {
@@ -60,9 +81,22 @@ const loginSlice = createSlice({
             .addCase(loginUser.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
+            })
+            .addCase(logOutUser.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(logOutUser.fulfilled, (state, action) => {
+                state.loading = false;
+                state.Token = null;
+            })
+            .addCase(logOutUser.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
             });
-    },
+    }
+
 });
 
-export const { logout, setToken } = loginSlice.actions;
+export const { logout, setToken, } = loginSlice.actions;
 export default loginSlice.reducer;

@@ -4,6 +4,7 @@ import packingReducer from './slices/PackigListSlice';
 import loginReducer from './slices/LoginSlice'
 import clientDataReducer from './slices/ClientDataSlice'
 import  mrpDataReducer  from './slices/MrpDataSlice';
+import userReducer from './slices/UserSlice';
 
 const store = configureStore({
   reducer: {
@@ -11,6 +12,7 @@ const store = configureStore({
     clientData: clientDataReducer,
     login: loginReducer,
     parts:mrpDataReducer,
+    userInfo:userReducer,
   },
 });
 

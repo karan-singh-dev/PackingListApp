@@ -5,6 +5,7 @@ import { Platform } from "react-native";
 
 export const useExcelExporter = () => {
   const generateExcelFile = async ({ data, headers, fileName, sheetName }) => {
+    console.log(data)
     try {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet(sheetName || "Sheet1");
@@ -36,41 +37,46 @@ export const useExcelExporter = () => {
         "height",
         "cbm",
       ];
-
+      
       // --- 3. Add Data Rows ---
-      data.forEach((item) => {
-        const row = headers.map(({ key }) =>
-          item[key] != null ? item[key].toString() : ""
-        );
+ // --- 3. Add Data Rows ---
+data.forEach((item, index) => {
+  const row = headers.map(({ key }) => {
+    if (key === "part_no" || key === "description" || key === "hsn_no") {
+      return item[key] != null ? item[key].toString() : "";
+    } else {
+      return item[key] != null ?item[key]!=""? parseFloat(item[key]):"" : 0;
+    }
+  });
 
-        const rowObj = worksheet.addRow(row);
-        const isLastRow = item === data.length - 1;
-        // Center alignment for each cell in this row
-        rowObj.eachCell((cell) => {
-          cell.alignment = {
-            horizontal: "center",
-            vertical: "middle",
-            wrapText: true // optional
-          };
-          if (!isLastRow) {
-            cell.border = {
-              top: { style: "thin" },
-              left: { style: "thin" },
-              bottom: { style: "thin" },
-              right: { style: "thin" }
-            };
-          }
-        });
+  const rowObj = worksheet.addRow(row);
+  const isLastRow = index === data.length - 1;
 
-        rowObj.height = 15; // <-- Fixed data row height
-      });
+  // Center alignment and borders
+  rowObj.eachCell((cell) => {
+    cell.alignment = {
+      horizontal: "center",
+      vertical: "middle",
+      wrapText: true,
+    };
+    if (!isLastRow) {
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+    }
+  });
 
+  rowObj.height = 15; // fixed data row height
+});
 
       // --- 4. Column Widths (set for every column) ---
       const customWidths = {
-        1: 5, 2: 15, 3: 25, 4: 15, 5: 10, 6: 8, 7: 10,
-        8: 10, 9: 10, 10: 8, 11: 8, 12: 6, 13: 6, 14: 6, 15: 6, 16: 8, 17: 8,
-        18: 8, 19: 8, 20: 7, 21: 7, 22: 7, 23: 8, 24: 15
+        1: 5, 2: 15, 3: 40, 4: 15, 5: 10, 6: 8, 7: 10,
+        8: 10, 9: 20, 10: 8, 11: 8, 12: 6, 13: 6, 14: 6, 15: 6, 16: 8, 17: 20,
+        18: 8, 19: 20, 20: 7, 21: 7, 22: 7, 23: 8, 24: 15
       };
       headers.forEach((h, i) => {
         const colIndex = i + 1;

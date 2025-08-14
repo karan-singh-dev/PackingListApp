@@ -151,7 +151,6 @@ const UpdateOrder = ({ navigation }) => {
                     `The part number mentioned below is no longer serviceable.\n\nPlease note this part no.\n${missing}`
                 );
 
-
             }
             // 3. Sync stock once here
             await API.post('/api/packing/packing/sync-stock/');

@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginUser } from '../../redux/slices/LoginSlice';
+import { loginUser, logOutUser } from '../../redux/slices/LoginSlice';
 import { fetchMrpList } from '../../redux/slices/MrpDataSlice';
+import { setUserInfo } from '../../redux/slices/UserSlice';
+import API from '../../components/API';
 
 const LogIn = () => {
-    const [username, setUsername] = useState('gaurav');
-    const [password, setPassword] = useState('12345');
+    const [username, setUsername] = useState('gaurav2');
+    const [password, setPassword] = useState('123456');
     const [localError, setLocalError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const dispatch = useDispatch();
 
     const { loading, error: reduxError } = useSelector((state) => state.login);
 
-//     useEffect(()=>{
-//    dispatch(fetchMrpList());
-//     },[])
+    //     useEffect(()=>{
+    //    dispatch(fetchMrpList());
+    //     },[])
 
     const handleLogin = () => {
         setLocalError('');
@@ -27,15 +29,25 @@ const LogIn = () => {
         }
     };
 
-       
+
     const submitLogin = async () => {
         if (isSubmitting) return;
 
         setIsSubmitting(true);
         try {
             const resultAction = await dispatch(loginUser({ username, password }));
+            //  const resultdata = await dispatch(logOutUser());
             if (loginUser.fulfilled.match(resultAction)) {
+                API.get("/api/user/users/me")
+                    .then(response => {
+                        console.log(response.data);
+                        dispatch(setUserInfo(response.data))
+                    })
+                    .catch(error => {
+                        console.error(error);
+                    });
                 console.log("Login success:", resultAction.payload);
+
             } else {
                 console.error("Login failed:", resultAction.payload);
             }

@@ -19,9 +19,9 @@ export const fetchPackingData = createAsyncThunk(
       const [stockRes, estimateRes, packingRes] = await Promise.all([
         API.get(ENDPOINTS.STOCK),
         API.get(`${ENDPOINTS.ESTIMATE}?client_name=${client}&marka=${marka}`),
-        API.get(`${ENDPOINTS.PACKING}?client_name=${client}&marka=${marka}`),
+        API.get(ENDPOINTS.PACKING, {params: { client, marka }})
       ]);
-
+// console.log(estimateRes.data, 'estimateRes');
       return {
         packing: packingRes.data,
         stock: stockRes.data,
