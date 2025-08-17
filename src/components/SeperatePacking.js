@@ -145,11 +145,11 @@ const SeperatePacking = () => {
     if (!form.part_no || !stock.length || !packing.length) return;
     const stockMatch = stock.find((s) => s.part_no === form.part_no);
     const packingMatch = packing.find((p) => p.part_no === form.part_no);
-    console.log(stockMatch, packingMatch, 'stockMatch, packingMatch');
     
     const stockQty = stockMatch?.qty || 0;
     const packingQty = packingMatch?.qty || 0;
     const minQty = Math.min(stockQty, packingQty);
+    console.log(stockQty, 'minQty');
     setForm((prev) => ({
       ...prev,
       total_packing_qty: minQty.toString(),

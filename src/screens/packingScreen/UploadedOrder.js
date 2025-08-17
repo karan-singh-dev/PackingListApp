@@ -89,7 +89,7 @@ const UploadedOrder = ({ navigation }) => {
                 params: { client_name: client, marka },
             });
 
-            if (res.status === 200) {
+            if (response.status === 200) {
                 navigation.navigate('Estimate');
             } else {
                 Alert.alert('Error', 'Failed to generate estimate');

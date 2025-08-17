@@ -47,7 +47,7 @@ const OrderUpload = ({ navigation }) => {
 
       const file = res[0];
       setSelectedFile(file);
-
+      console.log(file,'<file>');
       // Convert file to base64
       const filePath = file.uri.replace('file://', '');
       const b64 = await RNFS.readFile(filePath, 'base64');

@@ -25,9 +25,9 @@ const MainStockList = () => {
   const [updatePartNo, setUpdatePartNo] = useState(null);
   const [updateQty, setUpdateQty] = useState('');
   const navigation = useNavigation();
-  const user =useSelector(state => state.userInfo.user)
- 
- // Replace with real auth
+  const user = useSelector(state => state.userInfo.user)
+
+  // Replace with real auth
 
   const fetchStockData = async () => {
     try {
@@ -62,8 +62,10 @@ const MainStockList = () => {
         part_no,
         qty: qtyValue,
       });
+      await API.post('/api/packing/packing/sync-stock/');
 
       Alert.alert('Update Stock', response.data.message);
+
       setUpdatePartNo(null);
       setUpdateQty('');
       fetchStockData();
@@ -148,9 +150,7 @@ const MainStockList = () => {
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
-          <Icon name="menu" size={30} color="#000" />
-        </TouchableOpacity>
+        
         <View style={{ flex: 1 }}>
           <Text style={styles.heading}>📋 Stock List</Text>
         </View>

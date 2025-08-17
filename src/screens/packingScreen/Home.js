@@ -8,11 +8,15 @@ import { useDispatch, useSelector } from 'react-redux';
 import { resetClients } from '../../redux/slices/ClientDataSlice';
 import { useFocusEffect } from '@react-navigation/native';
 
+import useLogoutWebSocket from '../../components/UseWebSocket';
+
 
 const Home = ({ navigation }) => {
     const dispatch = useDispatch();
+    const userId = useSelector((state) => state.userInfo.user?.id);
     const [modalVisible, setModalVisible] = useState(false);
-
+    console.log(userId)
+    useLogoutWebSocket(userId,"nshhd")
 
     useFocusEffect(
         useCallback(() => {
