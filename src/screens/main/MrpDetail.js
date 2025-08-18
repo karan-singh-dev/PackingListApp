@@ -37,17 +37,14 @@ const MrpDetailS = () => {
   }, []);
 
   const handleGetDetail = async () => {
-    if (!partId.trim()) {
-      Alert.alert('Error', 'Please enter a part ID');
-      return;
-    }
+    
 
     setLoading(true);
     try {
       const res = await API.get(`api/mrp/data/${partId}/`);
       setResult(res.data);
     } catch (error) {
-      console.error('API error:', error);
+      console.log(error,'error')
       Alert.alert('Item not found');
       setResult(null);
     } finally {
@@ -58,20 +55,17 @@ const MrpDetailS = () => {
   const handleScan = (event) => {
     const scannedValue = event?.nativeEvent?.codeStringValue?.trim();
     if (!scannedValue) return;
-
+  console.log(scannedValue, 'scannedValue');
     let cleanValue = scannedValue;
 
-    if (scannedValue.includes("|")) {
-      const parts = scannedValue.split("|");
-      cleanValue = parts[1];
-    } else if (scannedValue.includes("_") || scannedValue.includes("-")) {
+  if (scannedValue.includes("_") || scannedValue.includes("-")) {
+  
       const parts = scannedValue.split(/[_-]/);
       cleanValue = parts[0];
     }
-
-    cleanValue = cleanValue.replace(/[^A-Za-z0-9]/g, "");
+console.log(cleanValue, 'cleanValue');
     setPartId(cleanValue);
-    setShowScanner(false); // hide scanner after reading
+    setShowScanner(false); 
   };
 
   return (

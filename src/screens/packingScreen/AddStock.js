@@ -26,7 +26,7 @@ const AddStock = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
     const [proceeded, setProceeded] = useState(false);
 
-  const selectedClient = useSelector((state) => state.clientData.selectedClient);
+  const selectedClient = useSelector((state) => state?.clientData?.selectedClient);
   const marka = selectedClient?.marka || '';
   const client = selectedClient?.client_name || '';
 

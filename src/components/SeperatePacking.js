@@ -55,7 +55,7 @@ const initialForm = {
 const HIDDEN_FIELDS = ["total_mrp", "npr", "nsr",];
 
 const SeperatePacking = () => {
-  const selectedClient = useSelector((state) => state.clientData.selectedClient);
+  const selectedClient = useSelector((state) => state?.clientData?.selectedClient);
   const client = selectedClient.client_name;
   const marka = selectedClient.marka;
 
@@ -66,8 +66,8 @@ const SeperatePacking = () => {
   const [selectedOption, setSelectedOption] = useState("");
   const [customInput, setCustomInput] = useState("");
   const { nextCaseNumber, packing, stock, loading, estimateList } = useSelector((state) => state.packing);
+  const [ignoreRemainder, setIgnoreRemainder] = useState(false);
 
-  
 
 
   const [form, setForm] = useState(initialForm);
@@ -109,7 +109,7 @@ const SeperatePacking = () => {
     const fetchData = async () => {
       try {
         const res = await API.get('api/packing/net-weight/', {
-          params: { part_no: form.part_no }, 
+          params: { part_no: form.part_no },
         });
         setNetWt(res.data);
         console.log(res.data, 'ok');
@@ -124,11 +124,11 @@ const SeperatePacking = () => {
 
   useEffect(() => {
     if (form.part_no && estimateList.length) {
-      
-      
+
+
       const item = estimateList.find((e) => e.part_no === form.part_no);
       if (item) {
-        console.log('item.tax_percent',item.tax_percent);
+        console.log('item.tax_percent', item.tax_percent);
         setForm((prev) => ({
           ...prev,
           mrp_invoice: item.mrp || "",
@@ -145,7 +145,7 @@ const SeperatePacking = () => {
     if (!form.part_no || !stock.length || !packing.length) return;
     const stockMatch = stock.find((s) => s.part_no === form.part_no);
     const packingMatch = packing.find((p) => p.part_no === form.part_no);
-    
+
     const stockQty = stockMatch?.qty || 0;
     const packingQty = packingMatch?.qty || 0;
     const minQty = Math.min(stockQty, packingQty);
@@ -259,7 +259,7 @@ const SeperatePacking = () => {
         dispatch(setPackingType(null));
         console.log(res.data[res.data.length - 1].cbm)
       }
-    
+
       navigation.navigate('AppDrawer', { screen: 'RowPackingList' })
     } catch (error) {
       console.error("Failed to fetch packing data:", error);
@@ -285,30 +285,78 @@ const SeperatePacking = () => {
     }, [navigation])
   );
 
-
-
   const handleSubmit = async () => {
-    
-    if (!form.total_packing_qty >= form.packed_in_plastic_bag){
-         Alert.alert('Totalpacking qty can not less then packed in plastic bag')
-    }else if(!form.total_gross_wt >= form.total_net_wt){
-         Alert.alert('gross wt is less then net wt please check')
-    }else{
- try {
-      const res = await dispatch(submitPackingDetails({ form, passedData, client, marka })).unwrap();
+    const totalQty = parseInt(form.total_packing_qty);
+    const packedPerBag = parseInt(form.packed_in_plastic_bag);
+    const caseStart = parseInt(form.case_no_start);
+
+
+    if (form.total_net_wt > form.total_gross_wt) {
+      Alert.alert("Gross wt is less than net wt, please check");
+      return;
+    }
+    if (totalQty % packedPerBag !== 0) {
+      const remainder = totalQty % packedPerBag;
+      const adjustedQty = Math.floor(totalQty / packedPerBag) * packedPerBag;
+
+      Alert.alert(
+        "Adjust Quantity?",
+        `${remainder} qty is extra and is creating an additional box. Do you want to adjust automatically to ${adjustedQty}?`,
+        [
+          {
+            text: "No",
+            style: "cancel",
+            onPress: () => {
+              // ❌ Do nothing — user will need to handle it manually
+              return;
+            },
+          },
+          {
+            text: "Yes",
+            onPress: () => {
+              // Recalculate case numbers
+              const totalCases = Math.ceil(adjustedQty / packedPerBag);
+              const caseEnd = caseStart + totalCases - 1;
+
+              const updatedForm = {
+                ...form,
+                total_packing_qty: adjustedQty.toString(),
+                total_case: totalCases.toString(),
+                case_no_end: caseEnd.toString(),
+              };
+              proceedSubmit(updatedForm);
+            },
+          },
+        ]
+      );
+
+      return;
+    }
+    proceedSubmit(form);
+  };
+
+  const proceedSubmit = async (submitForm) => {
+    try {
+      const res = await dispatch(
+        submitPackingDetails({ form: submitForm, passedData, client, marka })
+      ).unwrap();
+
       dispatch(setNextCaseNumber(parseInt(nextCaseNumber) + 1));
-      // Alert.alert("Success", "Packing detail added.");
       setForm(initialForm);
       handleNetwt();
       dispatch(setPackingType(null));
-     navigation.navigate('AppDrawer', { screen: 'PackingList' });
+      navigation.navigate("AppDrawer", { screen: "PackingList" });
     } catch (error) {
       console.error("Packing submit error:", error);
       Alert.alert("Error", "Something went wrong.");
     }
-    }
-   
   };
+
+
+
+
+
+
 
   return (
     <KeyboardAvoidingView

@@ -1,7 +1,5 @@
 import { useEffect, useRef } from "react";
 import { Alert } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { resetToLogin } from "../navigation/RootNavigation"; // adjust path
 import { useDispatch } from "react-redux";
 import { logOutUser } from "../redux/slices/LoginSlice";
 

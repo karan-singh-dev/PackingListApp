@@ -5,7 +5,7 @@ import { useSelector } from "react-redux";
 import API from "../../components/API";
 
 export default function UpdatePackingList() {
-    const selectedClient = useSelector((state) => state.clientData.selectedClient);
+    const selectedClient = useSelector((state) => state?.clientData?.selectedClient);
     const client = selectedClient?.client_name;
     const marka = selectedClient?.marka;
     const route = useRoute();

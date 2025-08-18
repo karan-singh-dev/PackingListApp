@@ -23,8 +23,8 @@ import Checklist from '../../components/Checklist';
 const UpdateOrder = ({ navigation }) => {
     const { height: windowHeight } = useWindowDimensions();
     const selectedClient = useSelector((state) => state?.clientData?.selectedClient);
-    const marka = selectedClient.marka;
-    const client = selectedClient.client_name;
+    const marka = selectedClient?.marka;
+    const client = selectedClient?.client_name;
     const [headers, setHeaders] = useState([]);
     const [rows, setRows] = useState([]);
     const [selectedFile, setSelectedFile] = useState(null);

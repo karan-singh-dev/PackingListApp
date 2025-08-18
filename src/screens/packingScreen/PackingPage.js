@@ -12,7 +12,7 @@ import { useSelector } from 'react-redux';
 import ClientSelection from '../../components/ClintSelection';
 
 export default function PackingPage({ navigation }) {
-  const selectedClient = useSelector((state) => state.clientData.selectedClient);
+  const selectedClient = useSelector((state) => state.clientData?.selectedClient);
   const client = selectedClient?.client_name || '';
   const marka = selectedClient?.marka || 'N/A';
   const isClientSelected = !!client;

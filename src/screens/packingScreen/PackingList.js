@@ -30,11 +30,11 @@ const DisplayPackingList = () => {
   const itemsPerPage = 30;
   const [modalVisible, setModalVisible] = useState(false);
   const { generateExcelFile, shareExcelFile } = useExcelExporter();
-  const selectedClient = useSelector((state) => state.clientData.selectedClient);
+  const selectedClient = useSelector((state) => state?.clientData?.selectedClient);
   const client = selectedClient?.client_name;
   const marka = selectedClient?.marka;
   const qrRefs = useRef([]);
-  const user = useSelector(state => state.userInfo.user)
+  const user = useSelector(state => state?.userInfo?.user);
   const cancelPrint = useRef(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const headers = [

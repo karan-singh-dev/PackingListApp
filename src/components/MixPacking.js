@@ -56,9 +56,9 @@ const disable = [
 ];
 
 const MixPacking = () => {
-  const selectedClient = useSelector((state) => state.clientData.selectedClient);
-  const client = selectedClient.client_name;
-  const marka = selectedClient.marka;
+  const selectedClient = useSelector((state) => state?.clientData?.selectedClient);
+  const client = selectedClient?.client_name;
+  const marka = selectedClient?.marka;
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const route = useRoute();

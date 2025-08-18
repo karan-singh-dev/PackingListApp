@@ -13,7 +13,7 @@ import useLogoutWebSocket from '../../components/UseWebSocket';
 
 const Home = ({ navigation }) => {
     const dispatch = useDispatch();
-    const userId = useSelector((state) => state.userInfo.user?.id);
+    const userId = useSelector((state) => state.userInfo?.user?.id);
     const [modalVisible, setModalVisible] = useState(false);
     console.log(userId)
     useLogoutWebSocket(userId,"nshhd")

@@ -22,7 +22,7 @@ import { Platform } from 'react-native';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 
 const ProformaInvoice = ({ navigation, pdfBase64, excelBase64 }) => {
-  const selectedClient = useSelector((state) => state.clientData.selectedClient);
+  const selectedClient = useSelector((state) => state?.clientData?.selectedClient);
   const client = selectedClient?.client_name || '';
   const marka = selectedClient?.marka || '';
   const isClientSelected = !!client;
