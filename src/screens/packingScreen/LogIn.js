@@ -15,8 +15,8 @@ import { setUserInfo } from '../../redux/slices/UserSlice';
 import API from '../../components/API';
 
 const LogIn = () => {
-  const [username, setUsername] = useState('gaurav2');
-  const [password, setPassword] = useState('123456');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userId, setUserId] = useState(null); // keep user id state
