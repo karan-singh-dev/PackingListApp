@@ -98,6 +98,9 @@ const CreateClient = () => {
     if (!data.final_destination?.trim()) {
       errors.final_destination = 'Final Destination is required';
     }
+    if (data.rupees === 0) {
+      errors.rupees = 'dollar amount is required';
+    }
 
     return errors;
   };

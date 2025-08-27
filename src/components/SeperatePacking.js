@@ -58,7 +58,7 @@ const SeperatePacking = () => {
   const selectedClient = useSelector((state) => state?.clientData?.selectedClient);
   const client = selectedClient.client_name;
   const marka = selectedClient.marka;
-
+  
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const route = useRoute();
@@ -143,7 +143,7 @@ const SeperatePacking = () => {
 
   useEffect(() => {
     if (!form.part_no || !stock.length || !packing.length) return;
-    const stockMatch = stock.find((s) => s.part_no === form.part_no);
+    const stockMatch = stock.find((s) => s.part_no === form.part_no && s.client === selectedClient.id);
     const packingMatch = packing.find((p) => p.part_no === form.part_no);
 
     const stockQty = stockMatch?.qty || 0;
@@ -289,9 +289,10 @@ const SeperatePacking = () => {
     const totalQty = parseInt(form.total_packing_qty);
     const packedPerBag = parseInt(form.packed_in_plastic_bag);
     const caseStart = parseInt(form.case_no_start);
+    const nt_wt = parseFloat(form.total_net_wt);
+    const gt_wt = parseFloat(form.total_gross_wt);
 
-
-    if (form.total_net_wt > form.total_gross_wt) {
+    if (nt_wt > gt_wt) {
       Alert.alert("Gross wt is less than net wt, please check");
       return;
     }

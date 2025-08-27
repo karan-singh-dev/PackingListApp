@@ -130,8 +130,8 @@ const calculateCBM = () => {
         />
       </View>
 
-      {/* Quantity */}
-      <Text style={styles.label}>Quantity</Text>
+      {/* Case Quantity */}
+      <Text style={styles.label}>Case Quantity</Text>
       <View style={styles.row}>
         <TextInput
           style={styles.input}

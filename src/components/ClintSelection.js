@@ -34,30 +34,8 @@ const ClientSelection = () => {
     }, [dispatch])
   );
 
-  const handleAddClient = async () => {
-    if (!clientName.trim() || !clientCountry.trim() || !clientMArka.trim()) {
-      Alert.alert('Validation Error', 'All fields are required');
-      return;
-    }
 
-    const newClient = {
-      client_name: clientName.trim(),
-      country: clientCountry.trim(),
-      marka: clientMArka.trim(),
-    };
-
-    try {
-      await dispatch(addClientAsync(newClient)).unwrap();
-      Alert.alert('Success', 'Client added successfully');
-      setClientName('');
-      setClientCountry('');
-      setClientMArka('');
-      setModalVisible(false);
-    } catch (err) {
-      console.error("Add client error:", err);
-      Alert.alert('Error', err?.message || 'Failed to add client');
-    }
-  };
+  
 
   const handleDeleteClient = async () => {
     if (!selectedClientData) return;

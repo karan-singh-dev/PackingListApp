@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,11 @@ import {
   FlatList,
   TextInput,
   ScrollView,
-  TouchableOpacity,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import API from '../../../components/API'; // keep your original path
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchClients } from '../../../redux/slices/ClientDataSlice';
 
 const deviceHeight = Dimensions.get('window').height;
 
@@ -22,13 +21,25 @@ const MainStockList = () => {
   const [stockData, setStockData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [updatePartNo, setUpdatePartNo] = useState(null);
-  const [updateQty, setUpdateQty] = useState('');
+  const [clientData, setClientData] = useState({});
   const navigation = useNavigation();
-  const user = useSelector(state => state.userInfo.user)
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.userInfo.user);
+  const { clients } = useSelector((state) => state.clientData);
 
-  // Replace with real auth
 
+useEffect(() => {
+  if (clients && Array.isArray(clients)) {
+    const clientsObject = clients.reduce((acc, item) => {
+      acc[item.id] = `${item.client_name} (${item.marka})`;
+      return acc;
+    }, {});
+    setClientData(clientsObject);
+  }
+}, [clients]);
+
+
+  // Fetch stock data
   const fetchStockData = async () => {
     try {
       const response = await API.get('/api/packing/stock/');
@@ -36,6 +47,7 @@ const MainStockList = () => {
         throw new Error('Unexpected response format');
       }
       setStockData(response.data);
+      // console.log(response.data, clients, clientsData, 'stocks');
     } catch (error) {
       console.error('API fetch error:', error);
       Alert.alert('Error', 'Failed to fetch stock data');
@@ -46,35 +58,13 @@ const MainStockList = () => {
 
   useFocusEffect(
     useCallback(() => {
+      dispatch(fetchClients());
+      // console.log(clientsData, 'clientsData');
       fetchStockData();
     }, [])
   );
 
-  const handleUpdate = async (part_no) => {
-    const qtyValue = parseInt(updateQty, 10);
-    if (isNaN(qtyValue)) {
-      Alert.alert('Invalid Quantity', 'Please enter a valid number.');
-      return;
-    }
-
-    try {
-      const response = await API.post('/api/packing/stock/update-qty/', {
-        part_no,
-        qty: qtyValue,
-      });
-      await API.post('/api/packing/packing/sync-stock/');
-
-      Alert.alert('Update Stock', response.data.message);
-
-      setUpdatePartNo(null);
-      setUpdateQty('');
-      fetchStockData();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update stock.');
-      console.error(error);
-    }
-  };
-
+  // Search filter
   const filteredData = useMemo(() => {
     if (!searchQuery) return stockData;
     const query = searchQuery.toLowerCase();
@@ -85,18 +75,18 @@ const MainStockList = () => {
     );
   }, [searchQuery, stockData]);
 
+  // Table header
   const renderTableHeader = () => (
     <View style={[styles.row, styles.headerRow]}>
       <Text style={[styles.cell, styles.headerCell, { width: 120 }]}>Part No</Text>
       <Text style={[styles.cell, styles.headerCell, { width: 200 }]}>Description</Text>
       <Text style={[styles.cell, styles.headerCell, { width: 90 }]}>Qty</Text>
       <Text style={[styles.cell, styles.headerCell, { width: 90 }]}>Brand</Text>
-      {user.is_staff && (
-        <Text style={[styles.cell, styles.headerCell, { width: 150 }]}>Update</Text>
-      )}
+      <Text style={[styles.cell, styles.headerCell, {  width: 200 }]}>Clients</Text>
     </View>
   );
 
+  // Table rows
   const renderTableRow = ({ item, index }) => (
     <View
       style={[
@@ -108,49 +98,13 @@ const MainStockList = () => {
       <Text style={[styles.cell, { width: 200 }]}>{item.description || 'N/A'}</Text>
       <Text style={[styles.cell, { width: 90 }]}>{item.qty?.toString() || '0'}</Text>
       <Text style={[styles.cell, { width: 90 }]}>{item.brand_name || 'N/A'}</Text>
-
-      {user.is_staff && (
-        <View style={[styles.cell, { width: 150, alignItems: 'center' }]}>
-          {updatePartNo === item.part_no ? (
-            <View style={{ alignItems: 'center' }}>
-              <TextInput
-                keyboardType="numeric"
-                style={styles.updateInput}
-                value={updateQty}
-                onChangeText={setUpdateQty}
-              />
-              <TouchableOpacity
-                style={[styles.updateButton, { backgroundColor: '#3b82f6' }]}
-                onPress={() => handleUpdate(item.part_no)}
-              >
-                <Text style={styles.updateButtonText}>Update Stock</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  setUpdatePartNo(null);
-                  setUpdateQty('');
-                }}
-              >
-                <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={[styles.updateButton, { backgroundColor: '#22c55e' }]}
-              onPress={() => setUpdatePartNo(item.part_no)}
-            >
-              <Text style={styles.updateButtonText}>Update</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
+      <Text style={[styles.cell, {  width: 200}]}>{clientData[item.client] || 'N/A'}</Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        
         <View style={{ flex: 1 }}>
           <Text style={styles.heading}>📋 Stock List</Text>
         </View>
@@ -204,7 +158,6 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     backgroundColor: '#fff',
   },
-  menuButton: { marginLeft: 15 },
   heading: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', color: '#333' },
   searchInput: {
     height: 40,
@@ -246,25 +199,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     color: '#666',
-  },
-  updateInput: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    marginBottom: 4,
-    width: 100,
-    textAlign: 'center',
-    borderRadius: 4,
-  },
-  updateButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 4,
-  },
-  updateButtonText: {
-    color: '#fff',
-    fontSize: 12,
   },
 });
 

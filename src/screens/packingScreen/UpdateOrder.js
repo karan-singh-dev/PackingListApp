@@ -152,16 +152,13 @@ const UpdateOrder = ({ navigation }) => {
                 );
 
             }
-            // 3. Sync stock once here
-            await API.post('/api/packing/packing/sync-stock/');
-            console.log("step sync-stock1 clear");
-            // 4. Update order rows
+            // 3. Update order rows
             const updateRes = await API.post('/api/packing/packing/update_row_list/', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             if (updateRes.status !== 200) throw new Error('Update failed');
             console.log("update_row_list");
-            // 5. Final sync + navigate
+            // 4. Final sync + navigate
             await API.post('/api/packing/packing/sync-stock/');
             console.log("step sync-stock2 clear");
             setShowEstimateModal(false)

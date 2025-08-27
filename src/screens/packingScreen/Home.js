@@ -14,14 +14,12 @@ import useLogoutWebSocket from '../../components/UseWebSocket';
 const Home = ({ navigation }) => {
     const dispatch = useDispatch();
     const userId = useSelector((state) => state.userInfo?.user?.id);
-    const [modalVisible, setModalVisible] = useState(false);
     console.log(userId)
     useLogoutWebSocket(userId,"nshhd")
 
     useFocusEffect(
         useCallback(() => {
             dispatch(resetClients());
-             setModalVisible(false)
         }, [dispatch])
         
     );
@@ -68,46 +66,14 @@ const Home = ({ navigation }) => {
                     <Ionicons name="search" size={32} color="#fff" />
                     <Text style={styles.menuText}>Search Item</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.menuItem}>
+                <TouchableOpacity  onPress={() => navigation.navigate('MainStockList')} style={styles.menuItem}>
                     <Ionicons name="cube" size={32} color="#fff" />
                     <Text style={styles.menuText}>Stock</Text>
                 </TouchableOpacity>
                 
 
             </View>
-            <Modal
-                transparent
-                animationType="slide"
-                visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
-            >
-                <View style={styles.overlay}>
-                    <View style={styles.modal}>
-                        <Text style={styles.title}>What would you like to do?</Text>
-
-                        <TouchableOpacity
-                            style={[styles.button, styles.downloadButton]}
-                            onPress={() => navigation.navigate('UpdateMainStocks')}
-                        >
-                            <Text style={styles.buttonText}>📦 Update Stock</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[styles.button, styles.shareButton]}
-                            onPress={() => navigation.navigate('MainStockList')}
-                        >
-                            <Text style={styles.buttonText}>📋 View Stock</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[styles.button, styles.cancelButton]}
-                            onPress={() => setModalVisible(false)}
-                        >
-                            <Text style={[styles.cancelText]}>Cancel</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
+           
 
         </View>
     );

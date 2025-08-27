@@ -27,19 +27,23 @@ const UploadedOrder = ({ navigation }) => {
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(false);
     const [asstimate, setAstimate] = useState(false);
-
+    const [oldQty, setOldQty] = useState('');
+    const [orderdata, setOrderData] = useState([])
     const [updatePartNo, setUpdatePartNo] = useState(null);
     const [updateQty, setUpdateQty] = useState('');
     const user = useSelector(state => state.userInfo.user)
+
+
 
     const fetchDataFromAPI = async () => {
         try {
             setLoading(true);
 
-            const response = await API.get(`/api/orderitem/items/`, {
+            const response = await API.get('/api/orderitem/items/', {
                 params: { client_name: client, marka },
             });
             const data = response.data;
+            setOrderData(data);
             console.log('Fetched Data:', data);
             setLoading(false);
             if (!Array.isArray(data) || data.length === 0) {
@@ -47,6 +51,7 @@ const UploadedOrder = ({ navigation }) => {
                 setRows([]);
                 return;
             }
+
 
             // Add "Action" column for update button
             let extractedHeaders = ['part_no', 'description', 'qty'];
@@ -62,7 +67,7 @@ const UploadedOrder = ({ navigation }) => {
             setRows(extractedRows);
 
             // Fetch estimate data
-            const res = await API.get(`/api/asstimate/`, {
+            const res = await API.get('/api/asstimate/', {
                 params: { client_name: client, marka },
             });
             const newdata = res.data;
@@ -85,8 +90,8 @@ const UploadedOrder = ({ navigation }) => {
     const generateEstimate = async () => {
         try {
             setLoading(true);
-            const response = await API.get(`/api/asstimate/`, {
-                params: { client_name: client, marka },
+            const response = await API.post('/api/asstimate/genrate/', {
+                client_name: client, marka: marka,
             });
 
             if (response.status === 200) {
@@ -102,23 +107,59 @@ const UploadedOrder = ({ navigation }) => {
         }
     };
 
-    const handleUpdate = async (part_no) => {
-        console.log(part_no,' part_no');
+    const handleUpdate = async (part_no,description) => {
+        console.log(part_no, ' part_no');
+
         const qtyValue = parseInt(updateQty, 10);
         if (isNaN(qtyValue)) {
             Alert.alert('Invalid Quantity', 'Please enter a valid number.');
             return;
         }
 
+        const { data: packingData } = await API.get('/api/packing/packing/', {
+            params: { client, marka },
+        });
+
+        const packingItem = Array.isArray(packingData)
+            ? packingData.find(item => item.part_no === part_no)
+            : null;
+
+        const packing_qty = packingItem ? packingItem.qty || 0 : 0;
+        const new_qty = qtyValue + packing_qty - Number(oldQty);
+
+        console.log({ packing_qty, qtyValue, oldQty, new_qty });
+
+        if (new_qty < 0) {
+            Alert.alert('Invalid Quantity', 'Quantity cannot be negative.');
+            return;
+        }
+
         try {
             const response = await API.post("/api/orderitem/items/update-qty/", {
                 partNo: part_no,
-                qty: parseInt(updateQty),
-                client_name:client,
-                marka:marka,
+                qty: qtyValue,
+                client_name: client,
+                marka: marka,
             });
 
-            Alert.alert('Update Stock', response.data.message);
+            const estimateRes = await API.post('/api/asstimate/genrate/', {
+                client_name: client,
+                marka: marka,
+            });
+            console.log(estimateRes.data);
+            const formData = new FormData();
+            formData.append('client_name', client);
+            formData.append('marka', marka);
+            formData.append('data', JSON.stringify({ 'part_no': part_no, 'description': description, 'qty': new_qty }));
+
+            const updateRes = await API.post('/api/packing/packing/update_row_list/', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            console.log(updateRes.data, 'updateRes');
+
+            await API.post('/api/packing/packing/sync-stock/');
+            console.log(updateRes.data, 'updateRes');
+            // Alert.alert('Update Stock', res);
             setUpdatePartNo(null);
             setUpdateQty('');
             fetchDataFromAPI();
@@ -130,6 +171,7 @@ const UploadedOrder = ({ navigation }) => {
 
     const renderRow = ({ item, index }) => {
         const part_no = item[0];
+        const description = item[1];
         const qty = item[2];
 
         return (
@@ -156,7 +198,10 @@ const UploadedOrder = ({ navigation }) => {
                             />
                             <TouchableOpacity
                                 style={[styles.pickButton, { backgroundColor: '#28a745', marginLeft: 5 }]}
-                                onPress={() => handleUpdate(part_no)}
+                                onPress={() => {
+                                    handleUpdate(part_no, description);
+
+                                }}
                             >
                                 <Text style={{ color: '#fff', fontSize: 12 }}>Save</Text>
                             </TouchableOpacity>
@@ -168,6 +213,8 @@ const UploadedOrder = ({ navigation }) => {
                             onPress={() => {
                                 setUpdatePartNo(part_no);
                                 setUpdateQty(String(qty));
+                                setOldQty(Number(qty));
+
                             }}
                         >
                             <Text style={{ color: '#fff', fontSize: 12 }}>Update</Text>

@@ -17,7 +17,6 @@ import { useSelector } from "react-redux";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import API from "../../components/API";
 import { useExcelExporter } from "../../components/useExcelExporter";
-import QRCode from "react-native-qrcode-svg";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const DisplayPackingList = () => {
@@ -106,28 +105,35 @@ const DisplayPackingList = () => {
     return grouped;
   };
 
-  const generateTableRows = () => {
-    const grouped = groupData();
-    const allRows = [];
-    let serial = 1;
-    for (const group of Object.values(grouped)) {
-      let prevSharedValues = {};
-      group.forEach((item, idx) => {
-        const row = headers.map(({ key }) => {
-          if (key === "sr_no") return serial++;
-          if (sharedFields.includes(key)) {
-            const shouldDisplay = idx === 0 || item[key] !== prevSharedValues[key];
-            prevSharedValues[key] = item[key];
-            return shouldDisplay ? item[key] : "";
-          } else {
-            return item[key];
-          }
-        });
-        allRows.push(row);
+const generateTableRows = () => {
+  const grouped = groupData();
+  const allRows = [];
+  let serial = 1;
+
+  // 🔹 हर group को case_no_start के हिसाब से sort कर रहे हैं
+  const sortedGroups = Object.values(grouped).sort((a, b) => {
+    return a[0]?.case_no_start - b[0]?.case_no_start;
+  });
+
+  for (const group of sortedGroups) {
+    let prevSharedValues = {};
+    group.forEach((item, idx) => {
+      const row = headers.map(({ key }) => {
+        if (key === "sr_no") return serial++;
+        if (sharedFields.includes(key)) {
+          const shouldDisplay = idx === 0 || item[key] !== prevSharedValues[key];
+          prevSharedValues[key] = item[key];
+          return shouldDisplay ? item[key] : "";
+        } else {
+          return item[key];
+        }
       });
-    }
-    return allRows;
-  };
+      allRows.push(row);
+    });
+  }
+  return allRows;
+};
+
 
   const tableData = useMemo(() => generateTableRows(), [data]);
 
@@ -325,18 +331,20 @@ const DisplayPackingList = () => {
     // Loop through filtered rows
     for (let i = 0; i < filtered.length; i++) {
       const { description, packed_in_plastic_bag } = filtered[i];
-
+      console.log(`CaseNo: ${i + 1 + currentCaseStart}`);
       // Build label object
       const labelData = {
         exporter: user?.address || "",
         marka: selectedClient?.marka || "",
+        CaseNo: null,
         itemName: description,
         qty: packed_in_plastic_bag,
       };
 
       // Push for all cases in range
       for (let j = currentCaseStart; j <= currentCaseEnd; j++) {
-        labelList.push(labelData);
+        console.log(j, 'j');
+        labelList.push({ ...labelData, CaseNo: j });
       }
     }
 
@@ -360,11 +368,12 @@ const DisplayPackingList = () => {
         if (!ref) return "";
 
         return `
-        <div style="width:50mm; height:35mm; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; border:1px solid black; padding:3mm; font-size:10px; line-height:1.3; page-break-after:always;">
+        <div style="width:50mm; height:40mm; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; font-size:10px; line-height:1.3; page-break-after:always;">
           <div><strong>Exporter:</strong> ${formatAddress(ref.exporter)}</div>
           <div><strong>Marka:</strong> ${ref.marka}</div>
           <div><strong>Item:</strong> ${ref.itemName}</div>
           <div><strong>Qty:</strong> ${ref.qty}</div>
+          <div><strong>Case No:</strong> ${ref.CaseNo}</div>
         </div>
       `;
       }).join("");
@@ -412,7 +421,7 @@ const DisplayPackingList = () => {
   const renderRow = ({ item, index }) => {
     const isTotalsRow = index === tableData.length;
 
-    // Raw data ka mapping le ke rowData dhoondhna
+    
     const rowData = data.find(d =>
       d.part_no === item[1] && d.description === item[2] && d.case_no_start == item[12]
     );
@@ -450,7 +459,7 @@ const DisplayPackingList = () => {
                 borderRadius: 4
               }}
             >
-              <Text style={{ color: "#fff", fontSize: 12 }}>Gen. QR</Text>
+              <Text style={{ color: "#fff", fontSize: 12 }}>Gen. Label</Text>
             </TouchableOpacity>
             {user.is_staff && (<TouchableOpacity
               onPress={() => navigation.navigate("UpdatePackingList", { item: rowData })}
@@ -617,6 +626,7 @@ const DisplayPackingList = () => {
                 <Text style={{ fontWeight: "bold" }}>Marka: <Text style={{ fontWeight: "normal" }}>{item.marka}</Text></Text>
                 <Text style={{ fontWeight: "bold" }}>Item: <Text style={{ fontWeight: "normal" }}>{item.itemName}</Text></Text>
                 <Text style={{ fontWeight: "bold" }}>Qty: <Text style={{ fontWeight: "normal" }}>{item.qty}</Text></Text>
+                <Text style={{ fontWeight: "bold" }}>Case No: <Text style={{ fontWeight: "normal" }}>{item.CaseNo}</Text></Text>
               </View>
             )}
           />

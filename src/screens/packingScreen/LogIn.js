@@ -45,7 +45,7 @@ const LogIn = () => {
 
     setIsSubmitting(true);
     try {
-      const resultAction = await dispatch(loginUser({ username, password }));
+      const resultAction = await dispatch(loginUser({ username: username.trim(), password: password.trim() }));
 
       if (loginUser.fulfilled.match(resultAction)) {
         // fetch user info

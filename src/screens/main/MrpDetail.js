@@ -52,21 +52,30 @@ const MrpDetailS = () => {
     }
   };
 
-  const handleScan = (event) => {
-    const scannedValue = event?.nativeEvent?.codeStringValue?.trim();
-    if (!scannedValue) return;
-  console.log(scannedValue, 'scannedValue');
-    let cleanValue = scannedValue;
+const handleScan = (event) => {
+  const scannedValue = event?.nativeEvent?.codeStringValue?.trim();
+  if (!scannedValue) return;
 
-  if (scannedValue.includes("_") || scannedValue.includes("-")) {
-  
-      const parts = scannedValue.split(/[_-]/);
-      cleanValue = parts[0];
-    }
-console.log(cleanValue, 'cleanValue');
-    setPartId(cleanValue);
-    setShowScanner(false); 
-  };
+  console.log(scannedValue, 'scannedValue');
+
+  // Strict pattern: <PARTID>-<digits>_<digits>
+  const pattern = /^([A-Z0-9]+)-\d+_\d+$/i;
+
+  const match = scannedValue.match(pattern);
+
+  if (!match) {
+    alert("This part is not available");
+    return;
+  }
+
+  // Extract only the Part ID (before the dash)
+  const cleanValue = match[1];
+
+  console.log(cleanValue, 'cleanValue');
+
+  setPartId(cleanValue);
+  setShowScanner(false);
+};
 
   return (
     <ScrollView contentContainerStyle={styles.container}>

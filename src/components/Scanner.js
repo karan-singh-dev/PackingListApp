@@ -43,18 +43,20 @@ export default function QRScannerScreen({ navigation }) {
 
       if (scannedValue.includes("-")) {
         const parts = scannedValue.split("-");
-       console.log(parts,"-");
+        console.log(parts, "-");
         cleanValue = parts[0]; (parts);
       } else {
         // Pipe-separated
         const parts = scannedValue.split("_");
-       console.log(parts,"_");
+        console.log(parts, "_");
         cleanValue = parts[0]; (parts);
       }
 
 
+    } else {
+      cleanValue = scannedValue.replace(/-/g, "");
     }
- 
+
     cleanValue = cleanValue.replace(/[^A-Za-z0-9]/g, "");
 
     console.log('📸 Scanned:', cleanValue);

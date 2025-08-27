@@ -39,38 +39,44 @@ export const useExcelExporter = () => {
       ];
       
       // --- 3. Add Data Rows ---
- // --- 3. Add Data Rows ---
-data.forEach((item, index) => {
-  const row = headers.map(({ key }) => {
-    if (key === "part_no" || key === "description" || key === "hsn_no") {
-      return item[key] != null ? item[key].toString() : "";
-    } else {
-      return item[key] != null ?item[key]!=""? parseFloat(item[key]):"" : 0;
-    }
-  });
+      // Sort data by case_no_start
+      const sortedData = [...data].sort((a, b) => {
+        const aNum = parseFloat(a.case_no_start) || 0;
+        const bNum = parseFloat(b.case_no_start) || 0;
+        return aNum - bNum;
+      });
 
-  const rowObj = worksheet.addRow(row);
-  const isLastRow = index === data.length - 1;
+      sortedData.forEach((item, index) => {
+        const row = headers.map(({ key }) => {
+          if (key === "part_no" || key === "description" || key === "hsn_no" || key === "brand_name") {
+            return item[key] != null ? item[key].toString() : "";
+          } else {
+            return item[key] != null ? item[key] !== "" ? parseFloat(item[key]) : "" : 0;
+          }
+        });
 
-  // Center alignment and borders
-  rowObj.eachCell((cell) => {
-    cell.alignment = {
-      horizontal: "center",
-      vertical: "middle",
-      wrapText: true,
-    };
-    if (!isLastRow) {
-      cell.border = {
-        top: { style: "thin" },
-        left: { style: "thin" },
-        bottom: { style: "thin" },
-        right: { style: "thin" },
-      };
-    }
-  });
+        const rowObj = worksheet.addRow(row);
+        const isLastRow = index === sortedData.length - 1;
 
-  rowObj.height = 15; // fixed data row height
-});
+        // Center alignment and borders
+        rowObj.eachCell((cell) => {
+          cell.alignment = {
+            horizontal: "center",
+            vertical: "middle",
+            wrapText: true,
+          };
+          if (!isLastRow) {
+            cell.border = {
+              top: { style: "thin" },
+              left: { style: "thin" },
+              bottom: { style: "thin" },
+              right: { style: "thin" },
+            };
+          }
+        });
+
+        rowObj.height = 15; // fixed data row height
+      });
 
       // --- 4. Column Widths (set for every column) ---
       const customWidths = {
@@ -89,12 +95,11 @@ data.forEach((item, index) => {
         }
       });
 
-
       // --- 5. Merge Shared Fields vertically by `case_no_start` ---
       let groupStartRow = 2; // first data row (row 2)
-      for (let i = 1; i < data.length; i++) {
-        const prevStart = data[i - 1].case_no_start;
-        const currentStart = data[i].case_no_start;
+      for (let i = 1; i < sortedData.length; i++) {
+        const prevStart = sortedData[i - 1].case_no_start;
+        const currentStart = sortedData[i].case_no_start;
 
         if (prevStart !== currentStart) {
           mergeSharedFields(groupStartRow, i + 1, sharedFields, headers, worksheet);
@@ -102,7 +107,7 @@ data.forEach((item, index) => {
         }
       }
       // Merge last group
-      mergeSharedFields(groupStartRow, data.length + 1, sharedFields, headers, worksheet);
+      mergeSharedFields(groupStartRow, sortedData.length + 1, sharedFields, headers, worksheet);
 
       // --- 6. Freeze Header Row ---
       worksheet.views = [{ state: "frozen", ySplit: 1 }];

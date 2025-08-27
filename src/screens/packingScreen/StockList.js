@@ -25,7 +25,9 @@ const StockList = () => {
   const [updatePartNo, setUpdatePartNo] = useState(null);
   const [updateQty, setUpdateQty] = useState('');
   const navigation = useNavigation();
- const user =useSelector(state => state.userInfo.user)
+  const user = useSelector(state => state.userInfo.user)
+  const client = useSelector((state) => state?.clientData?.selectedClient);
+  const client_id = client?.id;
 
 
   const fetchStockData = async () => {
@@ -35,7 +37,8 @@ const StockList = () => {
       if (!Array.isArray(response.data)) {
         throw new Error('Unexpected response format');
       }
-      setStockData(response.data);
+      const filteredData = response.data.filter((row) => row.client === client.id);
+      setStockData(filteredData);
     } catch (error) {
       console.error('API fetch error:', error);
       Alert.alert('Error', 'Failed to fetch stock data');
@@ -52,28 +55,29 @@ const StockList = () => {
 
 
   // Handle stock update
-const handleUpdate = async (part_no) => {
-  const qtyValue = parseInt(updateQty, 10);
-  if (isNaN(qtyValue)) {
-    Alert.alert("Invalid Quantity", "Please enter a valid number.");
-    return;
-  }
+  const handleUpdate = async (part_no) => {
+    const qtyValue = parseInt(updateQty, 10);
+    if (isNaN(qtyValue)) {
+      Alert.alert("Invalid Quantity", "Please enter a valid number.");
+      return;
+    }
 
-  try {
-    const response = await API.post("/api/packing/stock/update-qty/", {
-      part_no,
-      qty: qtyValue,
-    });
+    try {
+      const response = await API.post("/api/packing/stock/update-qty/", {
+        part_no,
+        qty: qtyValue,
+        client_id: client_id
+      });
 
-    Alert.alert("Update Stock", response.data.message);
-    setUpdatePartNo(null);
-    setUpdateQty("");
-    fetchStockData(); // make sure this matches your actual fetch function
-  } catch (error) {
-    Alert.alert("Error", "Failed to update stock.");
-    console.error(error);
-  }
-};
+      Alert.alert("Update Stock", response.data.message);
+      setUpdatePartNo(null);
+      setUpdateQty("");
+      fetchStockData(); // make sure this matches your actual fetch function
+    } catch (error) {
+      Alert.alert("Error", "Failed to update stock.");
+      console.error(error);
+    }
+  };
 
 
 
