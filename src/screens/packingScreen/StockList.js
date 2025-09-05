@@ -13,8 +13,9 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import API from '../../components/API'; // Use your centralized API instance
 import { useSelector } from 'react-redux';
+import LinearGradient from 'react-native-linear-gradient';
+import API from '../../components/API';
 
 const deviceHeight = Dimensions.get('window').height;
 
@@ -25,18 +26,14 @@ const StockList = () => {
   const [updatePartNo, setUpdatePartNo] = useState(null);
   const [updateQty, setUpdateQty] = useState('');
   const navigation = useNavigation();
-  const user = useSelector(state => state.userInfo.user)
-  const client = useSelector((state) => state?.clientData?.selectedClient);
+  const user = useSelector(state => state.userInfo.user);
+  const client = useSelector(state => state?.clientData?.selectedClient);
   const client_id = client?.id;
-
 
   const fetchStockData = async () => {
     try {
+      setLoading(true);
       const response = await API.get('/api/packing/stock/');
-      console.log(response.data);
-      if (!Array.isArray(response.data)) {
-        throw new Error('Unexpected response format');
-      }
       const filteredData = response.data.filter((row) => row.client === client.id);
       setStockData(filteredData);
     } catch (error) {
@@ -49,12 +46,10 @@ const StockList = () => {
 
   useFocusEffect(
     useCallback(() => {
-      fetchStockData();;
+      fetchStockData();
     }, [])
   );
 
-
-  // Handle stock update
   const handleUpdate = async (part_no) => {
     const qtyValue = parseInt(updateQty, 10);
     if (isNaN(qtyValue)) {
@@ -68,19 +63,18 @@ const StockList = () => {
         qty: qtyValue,
         client_id: client_id
       });
+      // 5️⃣ Sync stock
+      await API.post('/api/packing/packing/sync-stock/');
 
       Alert.alert("Update Stock", response.data.message);
       setUpdatePartNo(null);
       setUpdateQty("");
-      fetchStockData(); // make sure this matches your actual fetch function
+      fetchStockData();
     } catch (error) {
       Alert.alert("Error", "Failed to update stock.");
       console.error(error);
     }
   };
-
-
-
 
   const filteredData = useMemo(() => {
     if (!searchQuery) return stockData;
@@ -94,30 +88,68 @@ const StockList = () => {
 
   const renderTableHeader = () => (
     <View style={[styles.row, styles.headerRow]}>
-      <Text style={[styles.cell, styles.headerCell, { width: 120 }]}>Part No</Text>
-      <Text style={[styles.cell, styles.headerCell, { width: 200 }]}>Description</Text>
-      <Text style={[styles.cell, styles.headerCell, { width: 90 }]}>Qty</Text>
-      <Text style={[styles.cell, styles.headerCell, { width: 90 }]}>Brand</Text>
-      {user.is_staff ? (
-        <Text style={[styles.cell, styles.headerCell, { width: 150 }]}>Update</Text>
-      ) : null}
+      {[
+        { label: 'Part No', width: 120 },
+        { label: 'Description', width: 200 },
+        { label: 'Qty', width: 90 },
+        { label: 'Brand', width: 90 },
+      ].map((header, i) => (
+        <Text
+          key={i}
+          style={[
+            styles.cell,
+            styles.headerCell,
+            { width: header.width },
+            i === 3 && { borderRightWidth: 0 }, // remove right border for last column
+          ]}
+        >
+          {header.label}
+        </Text>
+      ))}
+      {user.is_staff && (
+        <Text
+          style={[
+            styles.cell,
+            styles.headerCell,
+            { width: 150, borderRightWidth: 0 },
+          ]}
+        >
+          Update
+        </Text>
+      )}
     </View>
   );
 
+
   const renderTableRow = ({ item, index }) => (
     <View
-      style={[
-        styles.row,
-        index % 2 === 0 ? styles.rowEven : styles.rowOdd,
-      ]}
+      style={[styles.row, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}
     >
-      <Text style={[styles.cell, { width: 120 }]}>{item.part_no || 'N/A'}</Text>
-      <Text style={[styles.cell, { width: 200 }]}>{item.description || 'N/A'}</Text>
-      <Text style={[styles.cell, { width: 90 }]}>{item.qty?.toString() || '0'}</Text>
-      <Text style={[styles.cell, { width: 90 }]}>{item.brand_name || 'N/A'}</Text>
+      {[
+        { value: item.part_no || 'N/A', width: 120 },
+        { value: item.description || 'N/A', width: 200 },
+        { value: item.qty?.toString() || '0', width: 90 },
+        { value: item.brand_name || 'N/A', width: 90 },
+      ].map((cell, i) => (
+        <Text
+          key={i}
+          style={[
+            styles.cell,
+            { width: cell.width },
+            i === 3 && { borderRightWidth: 0 }, // remove right border for last column
+          ]}
+        >
+          {cell.value}
+        </Text>
+      ))}
 
-      {user.is_staff ? (
-        <View style={[styles.cell, { width: 150, alignItems: 'center' }]}>
+      {user.is_staff && (
+        <View
+          style={[
+            styles.cell,
+            { width: 150, alignItems: 'center', borderRightWidth: 0 }, // last column
+          ]}
+        >
           {updatePartNo === item.part_no ? (
             <View style={{ alignItems: 'center' }}>
               <TextInput
@@ -138,7 +170,7 @@ const StockList = () => {
                   setUpdateQty('');
                 }}
               >
-                <Text style={{ color: 'red', fontSize: 12, marginTop: 4 }}>Cancel</Text>
+                <Text style={{ color: 'red', fontSize: 12, marginTop: 2 }}>Cancel</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -150,21 +182,24 @@ const StockList = () => {
             </TouchableOpacity>
           )}
         </View>
-      ) : null}
+      )}
     </View>
   );
 
+
   return (
-    <View style={styles.container}>
+    <LinearGradient colors={['#012B4B', '#004C8C']} style={styles.container}>
+      {/* Header */}
       <View style={styles.headerContainer}>
         <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
-          <Icon name="menu" size={30} color="#000" />
+          <Icon name="menu" size={30} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.heading}>📋 Stock List</Text>
         </View>
       </View>
 
+      {/* Search */}
       <TextInput
         placeholder="Search by Part Number or Description"
         placeholderTextColor="#ccc"
@@ -173,25 +208,25 @@ const StockList = () => {
         style={styles.searchInput}
       />
 
+      {/* Table */}
       {loading ? (
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color="#fff" />
       ) : filteredData.length === 0 ? (
         <Text style={styles.emptyText}>No stock data available.</Text>
       ) : (
         <ScrollView horizontal>
-          <View>
+          <View style={styles.tableCard}>
             {renderTableHeader()}
             <FlatList
               data={filteredData}
               keyExtractor={(_, index) => String(index)}
               renderItem={renderTableRow}
-              style={styles.table}
-              contentContainerStyle={{ paddingBottom: 100 }}
+              style={{ maxHeight: deviceHeight - 200 }}
             />
           </View>
         </ScrollView>
       )}
-    </View>
+    </LinearGradient>
   );
 };
 
@@ -199,35 +234,34 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 40,
-    backgroundColor: '#fff',
   },
-  headerContainer: { marginBottom: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', paddingTop: 20, backgroundColor: '#fff' },
-  menuButton: { marginLeft: 15 },
-  heading: { fontSize: 22, fontWeight: "bold", textAlign: "center", color: "#333" },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+  },
+  menuButton: { marginRight: 10 },
+  heading: { fontSize: 22, fontWeight: 'bold', color: '#fff', textAlign: 'center', flex: 1 },
   searchInput: {
     height: 40,
-    borderWidth: 1,
-    borderColor: '#ccc',
     borderRadius: 8,
     marginHorizontal: 16,
     paddingHorizontal: 10,
     marginBottom: 15,
+    backgroundColor: '#f0f4f7',
+    color: '#333'
   },
-  table: {
-    height: deviceHeight - 160,
+  tableCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginHorizontal: 10,
+    elevation: 3,
   },
-  row: {
-    flexDirection: 'row',
-  },
-  headerRow: {
-    backgroundColor: '#4CAF50',
-  },
-  rowEven: {
-    backgroundColor: '#f9f9f9',
-  },
-  rowOdd: {
-    backgroundColor: '#e6f2ff',
-  },
+  row: { flexDirection: 'row', alignItems: 'center' },
+  headerRow: { backgroundColor: '#0a74da', borderTopLeftRadius: 12, borderTopRightRadius: 12 },
+  rowEven: { backgroundColor: '#f9f9f9' },
+  rowOdd: { backgroundColor: '#e6f2ff' },
   cell: {
     padding: 10,
     textAlign: 'center',
@@ -236,15 +270,7 @@ const styles = StyleSheet.create({
     color: '#333',
     fontSize: 12,
   },
-  headerCell: {
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  emptyText: {
-    textAlign: 'center',
-    fontSize: 16,
-    color: '#666',
-  },
+  headerCell: { fontWeight: 'bold', color: '#fff' },
   updateInput: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -253,18 +279,23 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     width: 100,
     textAlign: 'center',
-    borderRadius: 4
+    borderRadius: 4,
+    backgroundColor: '#f9f9f9',
+    color: '#333',
   },
   updateButton: {
     paddingVertical: 4,
     paddingHorizontal: 8,
-    borderRadius: 4
+    borderRadius: 6,
+    marginBottom: 4,
   },
   updateButtonText: {
     color: '#fff',
-    fontSize: 12
-  }
-
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  cancelText: { color: 'red', fontSize: 12, marginTop: 2 },
+  emptyText: { color: '#fff', textAlign: 'center', fontSize: 16, marginTop: 50 },
 });
 
 export default StockList;

@@ -19,6 +19,7 @@
     "@react-navigation/native-stack": "^7.3.13",
     "@reduxjs/toolkit": "^2.8.2",
     "axios": "^1.9.0",
+    "buffer": "^6.0.3",
     "exceljs": "^4.4.0",
     "react": "19.0.0",
     "react-native": "0.79.2",

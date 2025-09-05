@@ -24,7 +24,8 @@ const DisplayPackingList = () => {
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageInput, setPageInput] = useState(""); // 👈 New state for jump-to-page
+  const [pageInput, setPageInput] = useState("");
+  const [partNoFilter, setPartNoFilter] = useState(""); // New state for part number filter
   const navigation = useNavigation();
   const itemsPerPage = 30;
   const [modalVisible, setModalVisible] = useState(false);
@@ -105,37 +106,41 @@ const DisplayPackingList = () => {
     return grouped;
   };
 
-const generateTableRows = () => {
-  const grouped = groupData();
-  const allRows = [];
-  let serial = 1;
+  const generateTableRows = () => {
+    const grouped = groupData();
+    const allRows = [];
+    let serial = 1;
 
-  // 🔹 हर group को case_no_start के हिसाब से sort कर रहे हैं
-  const sortedGroups = Object.values(grouped).sort((a, b) => {
-    return a[0]?.case_no_start - b[0]?.case_no_start;
-  });
-
-  for (const group of sortedGroups) {
-    let prevSharedValues = {};
-    group.forEach((item, idx) => {
-      const row = headers.map(({ key }) => {
-        if (key === "sr_no") return serial++;
-        if (sharedFields.includes(key)) {
-          const shouldDisplay = idx === 0 || item[key] !== prevSharedValues[key];
-          prevSharedValues[key] = item[key];
-          return shouldDisplay ? item[key] : "";
-        } else {
-          return item[key];
-        }
-      });
-      allRows.push(row);
+    const sortedGroups = Object.values(grouped).sort((a, b) => {
+      return a[0]?.case_no_start - b[0]?.case_no_start;
     });
-  }
-  return allRows;
-};
 
+    for (const group of sortedGroups) {
+      let prevSharedValues = {};
+      group.forEach((item, idx) => {
+        const row = headers.map(({ key }) => {
+          if (key === "sr_no") return serial++;
+          if (sharedFields.includes(key)) {
+            const shouldDisplay = idx === 0 || item[key] !== prevSharedValues[key];
+            prevSharedValues[key] = item[key];
+            return shouldDisplay ? item[key] : "";
+          } else {
+            return item[key];
+          }
+        });
+        allRows.push(row);
+      });
+    }
+    return allRows;
+  };
 
-  const tableData = useMemo(() => generateTableRows(), [data]);
+  const tableData = useMemo(() => {
+    const rows = generateTableRows();
+    if (!partNoFilter.trim()) return rows;
+    return rows.filter(row => 
+      row[1]?.toString().toLowerCase().includes(partNoFilter.toLowerCase())
+    );
+  }, [data, partNoFilter]);
 
   const calculateTotalsFromTableData = () => {
     const totals = {
@@ -201,7 +206,6 @@ const generateTableRows = () => {
   };
 
   const handleDownloadExcel = async () => {
-    // Convert raw data into rows based on headers
     const processedData = data.map((item, index) => {
       const row = {};
       headers.forEach(({ key }) => {
@@ -210,7 +214,6 @@ const generateTableRows = () => {
       return row;
     });
 
-    // Add totals row at the end
     const totalsRowObject = {};
     headers.forEach(({ key }) => {
       switch (key) {
@@ -230,7 +233,7 @@ const generateTableRows = () => {
           totalsRowObject[key] = totals.total_mrp.toFixed(2);
           break;
         default:
-          totalsRowObject[key] = ""; // empty for non-total columns
+          totalsRowObject[key] = "";
       }
     });
     processedData.push(totalsRowObject);
@@ -253,7 +256,6 @@ const generateTableRows = () => {
   };
 
   const handleShareExcel = async () => {
-    // Convert raw data into rows based on headers
     const processedData = data.map((item, index) => {
       const row = {};
       headers.forEach(({ key }) => {
@@ -261,7 +263,6 @@ const generateTableRows = () => {
       });
       return row;
     });
-
 
     const totalsRowObject = {};
     headers.forEach(({ key }) => {
@@ -292,11 +293,11 @@ const generateTableRows = () => {
 
     const granted = await requestAndroidPermissions();
     if (!granted) return Alert.alert("Permission Denied", "Storage permission is required to share the file.");
-
+    
     const filePath = await generateExcelFile({
       data: processedData,
       headers,
-      fileName: `PackingList_${Date.now()}`,
+      fileName: `PackingList_${client},${marka}`,
       sheetName: "PackingList",
     });
 
@@ -308,16 +309,13 @@ const generateTableRows = () => {
     }
   };
 
-
-
-  const [qrValues, setQrValues] = useState([]); // store all case QR codes
+  const [qrValues, setQrValues] = useState([]);
 
   const handleRowLabelGenerate = (rowData) => {
     if (!rowData) return;
 
     const { case_no_start, case_no_end } = rowData;
 
-    // Filter only rows of this case range
     const filtered = data
       .filter(item => item.case_no_start === case_no_start && item.case_no_end === case_no_end)
       .sort((a, b) => a.case_no_start - b.case_no_start);
@@ -328,11 +326,9 @@ const generateTableRows = () => {
     let currentCaseStart = filtered[0]?.case_no_start;
     let currentCaseEnd = filtered[0]?.case_no_end;
 
-    // Loop through filtered rows
     for (let i = 0; i < filtered.length; i++) {
       const { description, packed_in_plastic_bag } = filtered[i];
       console.log(`CaseNo: ${i + 1 + currentCaseStart}`);
-      // Build label object
       const labelData = {
         exporter: user?.address || "",
         marka: selectedClient?.marka || "",
@@ -341,17 +337,15 @@ const generateTableRows = () => {
         qty: packed_in_plastic_bag,
       };
 
-      // Push for all cases in range
       for (let j = currentCaseStart; j <= currentCaseEnd; j++) {
         console.log(j, 'j');
         labelList.push({ ...labelData, CaseNo: j });
       }
     }
 
-    setQrValues(labelList); // reusing same state
+    setQrValues(labelList);
     setModalVisible(true);
   };
-
 
   const formatAddress = (address) => {
     if (!address) return "";
@@ -402,26 +396,16 @@ const generateTableRows = () => {
     }
   };
 
-
-
-
-
   const cancelHandler = () => {
-    cancelPrint.current = true;   // tell print loop to stop ASAP
-    setIsPrinting(false);         // hide "Please Wait" overlay
-    setModalVisible(false);       // close the modal if open
+    cancelPrint.current = true;
+    setIsPrinting(false);
+    setModalVisible(false);
     console.log("Print canceled by user");
   };
-
-
-
-
-
 
   const renderRow = ({ item, index }) => {
     const isTotalsRow = index === tableData.length;
 
-    
     const rowData = data.find(d =>
       d.part_no === item[1] && d.description === item[2] && d.case_no_start == item[12]
     );
@@ -446,7 +430,6 @@ const generateTableRows = () => {
           </Text>
         ))}
 
-        {/* Gen. QR Button */}
         {!isTotalsRow && (
           <View style={{ flexDirection: "row", gap: 5, marginLeft: 5 }}>
             <TouchableOpacity
@@ -474,12 +457,10 @@ const generateTableRows = () => {
               <Text style={{ color: "#fff", fontSize: 12 }}> Update</Text>
             </TouchableOpacity>)}
           </View>
-
         )}
       </View>
     );
   };
-
 
   return (
     <View style={styles.container}>
@@ -490,6 +471,15 @@ const generateTableRows = () => {
         <Text style={styles.heading}>📋 Packing Details</Text>
       </View>
 
+      <View style={styles.filterContainer}>
+        <TextInput
+          style={styles.filterInput}
+          placeholder="Filter by Part No:"
+          placeholderTextColor="#999"
+          value={partNoFilter}
+          onChangeText={setPartNoFilter}
+        />
+      </View>
 
       {loading ? (
         <ActivityIndicator size="large" color="#2196F3" />
@@ -575,14 +565,13 @@ const generateTableRows = () => {
           <Text style={styles.buttonText}>📤 Share</Text>
         </TouchableOpacity>
       </View>
-      {/* Modal for Labels */}
+
       <Modal
         visible={modalVisible}
         animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={{ flex: 1, padding: 20, position: "relative" }}>
-          {/* Header with close + print */}
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <Text style={{ fontSize: 18, fontWeight: "bold" }}>
               Generated Labels : {(qrValues && qrValues.length) || 0}
@@ -595,9 +584,9 @@ const generateTableRows = () => {
 
               <TouchableOpacity
                 onPress={() => {
-                  cancelPrint.current = true; // stop printing
+                  cancelPrint.current = true;
                   setModalVisible(false);
-                  setIsPrinting(false);       // hide overlay immediately
+                  setIsPrinting(false);
                 }}
               >
                 <Icon name="close" size={26} color="#000" />
@@ -605,7 +594,6 @@ const generateTableRows = () => {
             </View>
           </View>
 
-          {/* Label List */}
           <FlatList
             data={qrValues}
             keyExtractor={(_, index) => index.toString()}
@@ -632,7 +620,6 @@ const generateTableRows = () => {
           />
         </View>
 
-        {/* Printing Overlay */}
         {isPrinting && (
           <View
             style={{
@@ -655,10 +642,6 @@ const generateTableRows = () => {
           </View>
         )}
       </Modal>
-
-
-
-
     </View>
   );
 };
@@ -671,10 +654,10 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // 🔹 spreads left/middle/right
+    justifyContent: 'space-between',
     paddingTop: 20,
     backgroundColor: '#fff',
-    paddingHorizontal: 10 // add some side padding
+    paddingHorizontal: 10
   },
   menuButton: { marginLeft: 15 },
   heading: { fontSize: 22, fontWeight: "bold", textAlign: "center", color: "#333", flex: 1, textAlign: 'center' },
@@ -684,9 +667,8 @@ const styles = StyleSheet.create({
   cellText: { fontSize: 11, textAlign: "center", padding: 4, borderRightWidth: 0.5, borderColor: "#ddd", },
   noData: { textAlign: "center", marginTop: 20, fontSize: 16, color: "#888" },
   buttonContainer: { flexDirection: "row", justifyContent: "center", marginTop: 20, marginBottom: 12, gap: 12 },
-  button: { backgroundColor: "#2196F3", paddingVertical: 8, paddingHorizontal: 16, borderRadius: 6 },
+  button: { backgroundColor: "#007bff", paddingVertical: 8, paddingHorizontal: 16, borderRadius: 6 },
   buttonText: { color: "#fff", fontSize: 14 },
-  totalRowBackground: { backgroundColor: "#ffe0b2" },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -697,22 +679,21 @@ const styles = StyleSheet.create({
     color: "#333",
     backgroundColor: "#fff",
   },
-  modalContainer: {
+  filterContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 10,
+    marginBottom: 10,
+  },
+ 
+  filterInput: {
     flex: 1,
-    padding: 20,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    fontSize: 14,
+    color: "#333",
     backgroundColor: "#fff",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginVertical: 10,
-  },
-  closeButton: {
-    backgroundColor: "red",
-    padding: 12,
-    marginTop: 20,
-    alignItems: "center",
-    borderRadius: 5,
   },
 });

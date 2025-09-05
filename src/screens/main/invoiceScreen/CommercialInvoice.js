@@ -46,6 +46,8 @@ const CommercialInvoice = ({ navigation, pdfBase64, excelBase64 }) => {
 
 
   console.log(invoiceData, 'invoiceData');
+  console.log(client, 'client');
+  console.log(marka, 'marka');
   // console.log(userData);
 
   const fetchpackingData = async () => {

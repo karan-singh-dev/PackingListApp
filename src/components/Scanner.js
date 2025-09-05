@@ -51,8 +51,6 @@ export default function QRScannerScreen({ navigation }) {
         console.log(parts, "_");
         cleanValue = parts[0]; (parts);
       }
-
-
     } else {
       cleanValue = scannedValue.replace(/-/g, "");
     }

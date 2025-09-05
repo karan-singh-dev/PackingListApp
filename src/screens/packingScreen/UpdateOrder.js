@@ -19,6 +19,7 @@ import API from '../../components/API';
 import { useSelector } from 'react-redux';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Checklist from '../../components/Checklist';
+import LinearGradient from 'react-native-linear-gradient';
 
 const UpdateOrder = ({ navigation }) => {
     const { height: windowHeight } = useWindowDimensions();
@@ -36,11 +37,7 @@ const UpdateOrder = ({ navigation }) => {
     const [description, setDescription] = useState('');
     const [qty, setQty] = useState('');
 
-
-
-
     /** File picker **/
-
     const handleFilePick = async () => {
         try {
             setLoading(true);
@@ -58,11 +55,9 @@ const UpdateOrder = ({ navigation }) => {
             const file = res[0];
             setSelectedFile(file);
 
-            // Remove file:// prefix for RNFS
             const filePath = file.uri.replace('file://', '');
             const b64 = await RNFS.readFile(filePath, 'base64');
 
-            // Decode Base64 → ArrayBuffer
             const binary = global.atob(b64);
             const buffer = new ArrayBuffer(binary.length);
             const view = new Uint8Array(buffer);
@@ -70,7 +65,6 @@ const UpdateOrder = ({ navigation }) => {
                 view[i] = binary.charCodeAt(i);
             }
 
-            // Load workbook via ExcelJS
             const workbook = new ExcelJS.Workbook();
             await workbook.xlsx.load(buffer);
 
@@ -80,10 +74,9 @@ const UpdateOrder = ({ navigation }) => {
                 return;
             }
 
-            // Convert worksheet rows to JSON-like structure
             const rows = [];
             worksheet.eachRow({ includeEmpty: true }, (row) => {
-                rows.push(row.values.slice(1)); // Remove first empty index
+                rows.push(row.values.slice(1));
             });
 
             if (rows.length === 0) {
@@ -96,7 +89,7 @@ const UpdateOrder = ({ navigation }) => {
 
             setHeaders(headerRow);
             setRows(rowData);
-            setProceeded(false); // reset checklist
+            setProceeded(false);
         } catch (err) {
             console.error('Error reading file:', err);
             Alert.alert('Error', 'Could not read or parse file');
@@ -104,7 +97,6 @@ const UpdateOrder = ({ navigation }) => {
             setLoading(false);
         }
     };
-
 
     const buildFormData = () => {
         const formData = new FormData();
@@ -126,41 +118,37 @@ const UpdateOrder = ({ navigation }) => {
         try {
             setLoading(true);
 
-            // 1. Upload file / manual data
             const formData = buildFormData();
             const uploadRes = await API.post('/api/orderitem/upload-excel/', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
+            console.log("Upload Response:", uploadRes.data);
             if (uploadRes.status !== 200) throw new Error('Upload failed');
-            console.log("step upload-excel clear");
 
-            // 2. Fetch estimate data
             const estimateRes = await API.post('/api/asstimate/genrate/', {
                 client_name: client,
                 marka: marka
             });
+            console.log("Estimate Generation Response:", estimateRes.data);
             if (estimateRes.status !== 200) throw new Error('Estimate fetch failed');
-            console.log("step asstimate clear", estimateRes.data.missing_data);
+
             if (estimateRes.data?.missing_data && estimateRes.data.missing_data.length > 0) {
                 const missing = Array.isArray(estimateRes.data.missing_data)
-                    ? estimateRes.data.missing_data.join('\n') // each on new line
+                    ? estimateRes.data.missing_data.join('\n')
                     : String(estimateRes.data.missing_data);
 
                 Alert.alert(
                     null,
                     `The part number mentioned below is no longer serviceable.\n\nPlease note this part no.\n${missing}`
                 );
-
             }
-            // 3. Update order rows
+
             const updateRes = await API.post('/api/packing/packing/update_row_list/', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             if (updateRes.status !== 200) throw new Error('Update failed');
-            console.log("update_row_list");
-            // 4. Final sync + navigate
+            console.log("Update Response:", updateRes.data);
             await API.post('/api/packing/packing/sync-stock/');
-            console.log("step sync-stock2 clear");
             setShowEstimateModal(false)
             navigation.navigate('UploadedOrder');
 
@@ -172,32 +160,29 @@ const UpdateOrder = ({ navigation }) => {
         }
     };
 
-
-
     return (
-        <View style={styles.container}>
-
-
+        <LinearGradient colors={['#012B4B', '#004C8C']} style={styles.container}>
             {selectedFile && !proceeded ? (
                 <Checklist name={['part_no', 'description', 'qty']} onProceed={() => setProceeded(true)} />
             ) : (
                 <>
+                    {/* Header */}
                     <View style={styles.headerContainer}>
                         <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
-                            <Icon name="menu" size={30} color="#000" />
+                            <Icon name="menu" size={30} color="#fff" />
                         </TouchableOpacity>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.heading}>Update Order</Text>
-                        </View>
+                        <Text style={styles.heading}>Update Order</Text>
                     </View>
+
                     {!selectedFile && (
                         <View style={styles.centerMessageContainer}>
                             <Text style={styles.subtext}>Pick a file to update Order or use Single Order</Text>
                         </View>
                     )}
+
                     {headers.length > 0 && proceeded && (
                         <ScrollView horizontal>
-                            <View>
+                            <View style={styles.tableCard}>
                                 <View style={styles.tableRowHeader}>
                                     {headers.map((header, index) => (
                                         <View key={index} style={styles.cellWrapper}>
@@ -228,55 +213,49 @@ const UpdateOrder = ({ navigation }) => {
                             </View>
                         </ScrollView>
                     )}
-                    <View style={styles.buttonRow}>
 
+                    {/* Buttons */}
+                    <View style={styles.buttonRow}>
                         {!selectedFile && (
                             <>
-                                <TouchableOpacity
-                                    style={styles.uploadButton}
-                                    onPress={() => setShowEstimateModal(true)}
-                                    disabled={loading}
-                                >
-                                    <Text style={styles.buttonText}>Single Order</Text>
+                                <TouchableOpacity onPress={() => setShowEstimateModal(true)} disabled={loading}>
+                                    <LinearGradient colors={['#007bff', '#0056b3']} style={styles.gradientBtn}>
+                                        <Text style={styles.buttonText}>Single Order</Text>
+                                    </LinearGradient>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity
-                                    style={styles.pickButton}
-                                    onPress={handleFilePick}
-                                    disabled={loading}
-                                >
-                                    <Text style={styles.buttonText}>Pick Order File</Text>
+                                <TouchableOpacity onPress={handleFilePick} disabled={loading}>
+                                    <LinearGradient colors={['#007bff', '#0056b3']} style={styles.gradientBtn}>
+                                        <Text style={styles.buttonText}>Pick Order File</Text>
+                                    </LinearGradient>
                                 </TouchableOpacity>
                             </>
                         )}
                         {selectedFile && (
                             <>
-                                <TouchableOpacity
-                                    style={styles.pickButton}
-                                    onPress={handleFilePick}
-                                    disabled={loading}
-                                >
-                                    <Text style={styles.buttonText}>Change File</Text>
+                                <TouchableOpacity onPress={handleFilePick} disabled={loading}>
+                                    <LinearGradient colors={['#007bff', '#0056b3']} style={styles.gradientBtn}>
+                                        <Text style={styles.buttonText}>Change File</Text>
+                                    </LinearGradient>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity
-                                    style={styles.uploadButton}
-                                    onPress={handleFullUpload}
-                                    disabled={loading}
-                                >
-                                    <Text style={styles.buttonText}>Upload File</Text>
+                                <TouchableOpacity onPress={handleFullUpload} disabled={loading}>
+                                    <LinearGradient colors={['#28a745', '#1e7e34']} style={styles.gradientBtn}>
+                                        <Text style={styles.buttonText}>Upload File</Text>
+                                    </LinearGradient>
                                 </TouchableOpacity>
                             </>
                         )}
                     </View>
+
+                    {/* Modal */}
                     <Modal visible={showEstimateModal} transparent animationType="slide">
                         <View style={styles.modalOverlay}>
                             <View style={styles.modalContent}>
+                                <Text style={styles.modalHeading}>Order Details</Text>
 
-                                <Text style={styles.modalheading}>Order Details</Text>
-
-                                <View style={{ marginTop: 20 }}>
-                                    <Text style={{ fontSize: 18 }}>Part No :</Text>
+                                <View style={{ marginTop: 15 }}>
+                                    <Text style={styles.inputLabel}>Part No :</Text>
                                     <TextInput
                                         style={styles.input}
                                         value={partNo}
@@ -286,8 +265,8 @@ const UpdateOrder = ({ navigation }) => {
                                     />
                                 </View>
 
-                                <View style={{ marginTop: 20 }}>
-                                    <Text style={{ fontSize: 18 }}>Description :</Text>
+                                <View style={{ marginTop: 15 }}>
+                                    <Text style={styles.inputLabel}>Description :</Text>
                                     <TextInput
                                         style={styles.input}
                                         value={description}
@@ -297,8 +276,8 @@ const UpdateOrder = ({ navigation }) => {
                                     />
                                 </View>
 
-                                <View style={{ marginTop: 20 }}>
-                                    <Text style={{ fontSize: 18 }}>Qty :</Text>
+                                <View style={{ marginTop: 15 }}>
+                                    <Text style={styles.inputLabel}>Qty :</Text>
                                     <TextInput
                                         style={styles.input}
                                         value={qty}
@@ -309,17 +288,21 @@ const UpdateOrder = ({ navigation }) => {
                                     />
                                 </View>
 
-                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
+                                <View style={styles.modalButtons}>
                                     <TouchableOpacity onPress={() => setShowEstimateModal(false)}>
-                                        <Text style={[styles.pickButtonText, { color: 'red' }]}>Cancel</Text>
+                                        <Text style={styles.cancelText}>Cancel</Text>
                                     </TouchableOpacity>
+
                                     <TouchableOpacity onPress={handleFullUpload}>
-                                        <Text style={[styles.pickButtonText, { backgroundColor: '#315ff8ff' }]}>Submit</Text>
+                                        <LinearGradient colors={['#ff512f', '#dd2476']} style={styles.modalButton}>
+                                            <Text style={styles.modalButtonText}>Submit</Text>
+                                        </LinearGradient>
                                     </TouchableOpacity>
                                 </View>
                             </View>
                         </View>
                     </Modal>
+
                     {loading && (
                         <View style={styles.loadingOverlay}>
                             <ActivityIndicator size="large" color="#fff" />
@@ -328,12 +311,12 @@ const UpdateOrder = ({ navigation }) => {
                     )}
                 </>
             )}
-        </View>
+        </LinearGradient>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
+    container: { flex: 1 },
     headerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -347,11 +330,21 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center',
         flex: 1,
-        color: '#333',
+        color: '#fff',
     },
-    subtext: { fontSize: 16, color: '#666', textAlign: 'center' },
+    subtext: { fontSize: 16, color: '#ddd', textAlign: 'center' },
     centerMessageContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    tableRowHeader: { flexDirection: 'row', backgroundColor: '#2196F3' },
+    tableCard: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        margin: 10,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 3 },
+        elevation: 4,
+    },
+    tableRowHeader: { flexDirection: 'row', backgroundColor: '#2196F3', borderTopLeftRadius: 12, borderTopRightRadius: 12 },
     tableRow: { flexDirection: 'row' },
     cellWrapper: {
         width: 150,
@@ -365,39 +358,26 @@ const styles = StyleSheet.create({
     rowOdd: { backgroundColor: '#e6f2ff' },
     headerText: { fontWeight: 'bold', color: '#fff', fontSize: 12, textAlign: 'center' },
     cellText: { fontSize: 12, color: '#333', textAlign: 'center' },
-    buttonRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        marginVertical: 20,
-        paddingHorizontal: 10,
-    },
-    pickButton: {
-        flex: 1,
-        backgroundColor: '#007bff',
-        padding: 12,
-        borderRadius: 8,
-        alignItems: 'center',
-        marginHorizontal: 5,
-    },
-    uploadButton: {
-        flex: 1,
-        backgroundColor: '#28a745',
-        padding: 12,
-        borderRadius: 8,
-        alignItems: 'center',
-        marginHorizontal: 5,
-    },
-    buttonText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+    buttonRow: { flexDirection: 'row', justifyContent: 'space-around', marginVertical: 10, paddingHorizontal: 10 },
+   gradientBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 5,
+},
+
+    buttonText: { 
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+},
+
     loadingOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'rgba(0,0,0,0.3)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 999,
+        position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+        backgroundColor: 'rgba(0,0,50,0.5)', alignItems: 'center', justifyContent: 'center', zIndex: 999,
     },
     modalOverlay: {
         flex: 1,
@@ -411,27 +391,34 @@ const styles = StyleSheet.create({
         padding: 20,
         borderRadius: 10,
     },
+    modalHeading: {
+        fontSize: 18,
+        fontWeight: '600',
+        textAlign: 'center',
+        marginBottom: 10,
+    },
+    inputLabel: { fontSize: 16, marginBottom: 5 },
     input: {
         borderColor: '#ccc',
         borderWidth: 1,
         borderRadius: 8,
         paddingHorizontal: 10,
-        marginTop: 5,
+        paddingVertical: 6,
     },
-    modalheading: {
-        marginBottom: 10,
-        fontSize: 18,
-        fontWeight: '600',
-        textAlign: 'center',
+    modalButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 20,
+        alignItems: 'center',
     },
-    pickButtonText: {
-        padding: 10,
+    cancelText: { color: 'red', fontSize: 15, fontWeight: '600' },
+    modalButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 20,
         borderRadius: 8,
-        color: '#fff',
-        fontSize: 15,
-        fontWeight: 'bold',
-        textAlign: 'center',
+        alignItems: 'center',
     },
+    modalButtonText: { color: '#fff', fontSize: 15, fontWeight: '600' },
 });
 
 export default UpdateOrder;
