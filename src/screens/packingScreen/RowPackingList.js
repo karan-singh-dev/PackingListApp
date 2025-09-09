@@ -20,6 +20,7 @@ import { useFocusEffect, useRoute } from '@react-navigation/native';
 
 import API from '../../components/API';
 import { setNextCaseNumber, setPackingType } from '../../redux/slices/PackigListSlice';
+import { opacity } from 'react-native-reanimated/lib/typescript/Colors';
 
 const COLUMN_WIDTH = 150;
 
@@ -109,7 +110,7 @@ const RowPackingList = ({ navigation }) => {
     if (matched) {
       handleStartPacking(matched);
     } else {
-      Alert.alert('Not Found', `No item found for: ${code}`);
+     Alert.alert('Item not in order', `No item found for: ${code}`);
     }
 
     navigation.setParams({ scannedCode: undefined });
@@ -167,7 +168,7 @@ const RowPackingList = ({ navigation }) => {
         </View>
       ))}
       <View style={[styles.cellWrapper, { width: COLUMN_WIDTH, borderRightWidth: 0 }]}>
-        <TouchableOpacity style={styles.button} onPress={() => handleStartPacking(item)}>
+        <TouchableOpacity style={[styles.button]} disabled={item.stock_qty === 0} onPress={() => handleStartPacking(item)}>
           <LinearGradient colors={['#007bff', '#0056b3']} style={styles.gradientBtn}>
             <Text style={styles.buttonText}>Start Packing</Text>
           </LinearGradient>

@@ -34,7 +34,7 @@ const UploadedOrder = ({ navigation }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [updatingRow, setUpdatingRow] = useState(null); // NEW: Track row-level loading
     const [searchText, setSearchText] = useState('');
-
+const totalQuantity = rows.reduce((sum, row) => sum + (parseInt(row[2], 10) || 0), 0);
     const user = useSelector((state) => state.userInfo.user);
     const flatListRef = useRef(null);
 
@@ -59,7 +59,7 @@ const UploadedOrder = ({ navigation }) => {
             }
 
             let extractedHeaders = ['part_no', 'description', 'qty'];
-            if (user?.is_staff) extractedHeaders.push('Action');
+            if (user?.permission) extractedHeaders.push('Action');
 
             const extractedRows = data.map(item => [
                 item.part_no ?? '',
@@ -204,11 +204,12 @@ const UploadedOrder = ({ navigation }) => {
                     index % 2 === 0 ? styles.rowEven : styles.rowOdd,
                 ]}
             >
+                  <View style={[styles.cellWrapper,{width: 50}]}><Text style={styles.cellText}>{index + 1}</Text></View>
                 <View style={styles.cellWrapper}><Text style={styles.cellText}>{part_no}</Text></View>
                 <View style={styles.cellWrapper}><Text style={styles.cellText}>{description}</Text></View>
                 <View style={styles.cellWrapper}><Text style={styles.cellText}>{qty}</Text></View>
 
-                {user.is_staff && (
+                {user.permission && (
                     <View style={styles.cellWrapper}>
                         {updatePartNo === part_no ? (
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -285,6 +286,9 @@ const UploadedOrder = ({ navigation }) => {
                     <ScrollView horizontal keyboardDismissMode="none">
                         <View>
                             <View style={styles.tableRowHeader}>
+                                 <View style={[styles.cellWrapper, { width: 50, marginVertical: 0 }]}>
+                                                  <Text style={styles.headerText}>Sr No.</Text>
+                                                </View>
                                 {headers.map((header, index) => (
                                     <View key={index} style={[styles.cellWrapper, { marginVertical: 0 }]}>
                                         <Text style={styles.headerText}>{header}</Text>
@@ -303,8 +307,11 @@ const UploadedOrder = ({ navigation }) => {
                             />
 
                         </View>
-                    </ScrollView>
 
+                    </ScrollView>
+                        <View style={{marginHorizontal: 10,padding: 10, backgroundColor: '#f4f6f9', borderTopWidth: 1, borderColor: '#e5e7eb', alignItems: 'center'}}>
+                            <Text style={{ color: '#555', fontSize: 15 }}>Total Quantity: {totalQuantity}</Text>
+                        </View>
                     <View style={styles.buttonRow}>
                         {asstimate ? (
                             <TouchableOpacity

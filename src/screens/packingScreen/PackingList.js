@@ -18,6 +18,7 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import API from "../../components/API";
 import { useExcelExporter } from "../../components/useExcelExporter";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const DisplayPackingList = () => {
   const [data, setData] = useState([]);
@@ -35,6 +36,7 @@ const DisplayPackingList = () => {
   const marka = selectedClient?.marka;
   const qrRefs = useRef([]);
   const user = useSelector(state => state?.userInfo?.user);
+  console.log(user, 'user');
   const cancelPrint = useRef(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const headers = [
@@ -444,7 +446,7 @@ const DisplayPackingList = () => {
             >
               <Text style={{ color: "#fff", fontSize: 12 }}>Gen. Label</Text>
             </TouchableOpacity>
-            {user.is_staff && (<TouchableOpacity
+            {user.permission && (<TouchableOpacity
               onPress={() => navigation.navigate("UpdatePackingList", { item: rowData })}
               style={{
                 backgroundColor: '#2196F3',
@@ -463,6 +465,7 @@ const DisplayPackingList = () => {
   };
 
   return (
+    <SafeAreaView style={styles.container}>
     <View style={styles.container}>
       <View style={styles.headerContainer}>
         <TouchableOpacity onPress={() => navigation.openDrawer()} style={styles.menuButton}>
@@ -643,6 +646,7 @@ const DisplayPackingList = () => {
         )}
       </Modal>
     </View>
+    </SafeAreaView>
   );
 };
 

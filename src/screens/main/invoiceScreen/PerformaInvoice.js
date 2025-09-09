@@ -262,7 +262,7 @@ const ProformaInvoice = ({ navigation, pdfBase64, excelBase64 }) => {
 
     const pdfFile = await RNHTMLtoPDF.convert({
       html: htmlContent,
-      fileName: `ProformaInvoice_${Date.now()}`,
+      fileName: `ProformaInvoice_${client}_${marka}`,
       directory: 'Documents', // stays in app's private dir
     });
 

@@ -211,6 +211,7 @@ const MixPacking = () => {
 
 
   const handleCaseUpdate = async () => {
+    
     try {
       const res = await API.post('api/packing/packingdetail/update-by-case/', {
         case_no_start: form.case_no_start.toString(),
@@ -249,6 +250,7 @@ const MixPacking = () => {
 
 
   const handleSubmit = async () => {
+     
 
     try {
       await dispatch(submitPackingDetails({ form, passedData, client, marka, PackingType })).unwrap();

@@ -22,8 +22,10 @@ const ITEM_SIZE = (width - 16 * 2 - 16) / 2;
 const Home = ({ navigation }) => {
   const dispatch = useDispatch();
   const userId = useSelector((state) => state.userInfo?.user?.id);
-
+  const userdata = useSelector((state) => state.userInfo?.user);
   useLogoutWebSocket(userId, 'nshhd');
+
+  console.log(userdata, 'userdatauserdata');
 
   useFocusEffect(
     useCallback(() => {
@@ -41,8 +43,11 @@ const Home = ({ navigation }) => {
     { title: 'Search Item', icon: <Ionicons name="search" size={36} color="#1E40AF" />, screen: 'Mrp' },
     { title: 'Stock', icon: <Ionicons name="cube" size={36} color="#1E40AF" />, screen: 'MainStockList' },
     { title: 'Mrp List', icon: <Ionicons name="pricetags-outline" size={36} color="#1E40AF" />, screen: 'MrpList' },
-    { title: 'Security', icon: <Ionicons name="shield-checkmark" size={36} color="#1E40AF" />, screen: 'Security' },
+  
   ];
+  if(userdata?.is_staff){
+    menuItems.push(  { title: 'Security', icon: <Ionicons name="shield-checkmark" size={36} color="#1E40AF" />, screen: 'Security' });
+  }
 
   const renderItem = ({ item }) => (
     <TouchableOpacity
@@ -66,8 +71,8 @@ const Home = ({ navigation }) => {
           source={require('../../assets/images/logo.png')}
           style={styles.logo}
         />
-        <Text style={styles.heading}>GlobePact</Text>
-        <Text style={styles.subHeading}>Simplifying Global Trade</Text>
+        <Text style={styles.heading}>SKG</Text>
+        <Text style={styles.subHeading}>NOW EXPORT IN YOUR POCKET</Text>
       </LinearGradient>
 
       {/* Menu Grid */}
@@ -100,9 +105,9 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 20,
   },
   logo: {
-    width: 70,
-    height: 70,
-    marginBottom: 10,
+    width: 100,
+    height: 100,
+    // backgroundColor:'#fff',
     resizeMode: 'contain',
   },
   heading: {

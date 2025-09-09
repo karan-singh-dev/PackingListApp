@@ -29,7 +29,7 @@ const StockList = () => {
   const user = useSelector(state => state.userInfo.user);
   const client = useSelector(state => state?.clientData?.selectedClient);
   const client_id = client?.id;
-
+const totalQuantity = stockData.reduce((sum, item) => sum + (item.qty || 0), 0);
   const fetchStockData = async () => {
     try {
       setLoading(true);
@@ -89,6 +89,7 @@ const StockList = () => {
   const renderTableHeader = () => (
     <View style={[styles.row, styles.headerRow]}>
       {[
+        { label: 'Sr No.', width: 50 },
         { label: 'Part No', width: 120 },
         { label: 'Description', width: 200 },
         { label: 'Qty', width: 90 },
@@ -106,7 +107,7 @@ const StockList = () => {
           {header.label}
         </Text>
       ))}
-      {user.is_staff && (
+      {user.permission && (
         <Text
           style={[
             styles.cell,
@@ -126,6 +127,7 @@ const StockList = () => {
       style={[styles.row, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}
     >
       {[
+        { value: index + 1, width: 50 },
         { value: item.part_no || 'N/A', width: 120 },
         { value: item.description || 'N/A', width: 200 },
         { value: item.qty?.toString() || '0', width: 90 },
@@ -143,7 +145,7 @@ const StockList = () => {
         </Text>
       ))}
 
-      {user.is_staff && (
+      {user.permission && (
         <View
           style={[
             styles.cell,
@@ -223,6 +225,9 @@ const StockList = () => {
               renderItem={renderTableRow}
               style={{ maxHeight: deviceHeight - 200 }}
             />
+            <View style={{padding: 10, backgroundColor: '#f4f6f9', borderTopWidth: 1, borderColor: '#e5e7eb', alignItems: 'center',}}>
+                <Text style={{ color: '#555', fontSize: 15 }}>Total Quantity: {totalQuantity}</Text>
+            </View>
           </View>
         </ScrollView>
       )}
@@ -253,7 +258,7 @@ const styles = StyleSheet.create({
     color: '#333'
   },
   tableCard: {
-    backgroundColor: '#fff',
+   
     borderRadius: 12,
     marginHorizontal: 10,
     elevation: 3,

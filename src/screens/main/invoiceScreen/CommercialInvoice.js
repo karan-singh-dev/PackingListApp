@@ -35,7 +35,6 @@ const CommercialInvoice = ({ navigation, pdfBase64, excelBase64 }) => {
   const [packing, setpacking] = useState(false);
   const [invoiceData, setInvoiceData] = useState(null);
   const [invoiceGenerated, setInvoiceGenerated] = useState(false);
-  const { generateExcelFile, shareExcelFile } = useExcelExporter();
   const [fileType, setFileType] = useState('pdf'); // default PDF
 
   const totalQty = invoiceData?.reduce((sum, item) => sum + Number(item.qty || 0), 0) || 0;
@@ -44,6 +43,8 @@ const CommercialInvoice = ({ navigation, pdfBase64, excelBase64 }) => {
   const totalIGST = invoiceData?.reduce((sum, item) => sum + Number(item.gst_amt || 0), 0) || 0;
   const totalNetWeight = invoiceData?.reduce((sum, item) => sum + Number(item.total_net_wt || 0), 0) || 0;
 
+console.log(invoiceData, 'invoiceData');
+console.log(packing, 'packing');
 
   console.log(invoiceData, 'invoiceData');
   console.log(client, 'client');
@@ -307,7 +308,7 @@ const CommercialInvoice = ({ navigation, pdfBase64, excelBase64 }) => {
     const pdfFile = await RNHTMLtoPDF.convert(options);
 
     if (mode === 'download') {
-      const newFileName = `CommercialInvoice_${Date.now()}.pdf`;
+      const newFileName = `CommercialInvoice_${client}_${marka}.pdf`;
       const downloadPath = `${RNFS.DownloadDirectoryPath}/${newFileName}`;
 
       await RNFS.copyFile(pdfFile.filePath, downloadPath);
@@ -323,8 +324,15 @@ const CommercialInvoice = ({ navigation, pdfBase64, excelBase64 }) => {
       setModalVisible(false);
     } else {
       setModalVisible(false);
+
+      // Make a copy to Downloads (or CachesDirectoryPath for temporary share)
+      const newFileName = `CommercialInvoice_${client}_${marka}.pdf`;
+      const sharePath = `${RNFS.DownloadDirectoryPath}/${newFileName}`;
+
+      await RNFS.copyFile(pdfFile.filePath, sharePath);
+
       await Share.open({
-        url: `file://${pdfFile.filePath}`,
+        url: `file://${sharePath}`,  
         type: 'application/pdf',
         failOnCancel: false,
       });
@@ -664,7 +672,7 @@ const CommercialInvoice = ({ navigation, pdfBase64, excelBase64 }) => {
 
 
 
-    const fileName = `CommercialInvoice_${Date.now()}.${type === 'pdf' ? 'pdf' : 'xlsx'}`;
+    const fileName = `CommercialInvoice_${client}_${marka}.${type === 'pdf' ? 'pdf' : 'xlsx'}`;
 
     if (type === 'excel') {
       generateMergedExcel({
@@ -1067,7 +1075,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   detailTable: {
-    
+
     borderWidth: 1,
     borderColor: '#000',
     backgroundColor: '#fff',

@@ -17,7 +17,7 @@ export default function PackingPage({ navigation }) {
   const client = selectedClient?.client_name || '';
   const marka = selectedClient?.marka || 'N/A';
   const isClientSelected = !!client;
-
+console.log(selectedClient,"selectedClientselectedClient");
   const buttons = [
     { title: 'Order Upload', screen: 'OrderUpload', icon: 'upload-cloud', colors: ['#3B82F6', '#2563EB'] },
     { title: 'Order Update', screen: 'OrderUpdate', icon: 'edit', colors: ['#6366F1', '#4338CA'] },

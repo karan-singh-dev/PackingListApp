@@ -122,10 +122,11 @@ const OrderUpload = ({ navigation }) => {
     }
     try {
       setLoading(true);
-      const res = await API.post('/api/asstimate/genrate/', {
-        client_name: client,
-        marka: marka
-      });
+      const res =await API.post('/api/asstimate/genrate/', {
+                      client_name: client,
+                      marka: marka
+                  });
+      console.log("Estimate Response:", res.data);
       if (res.status === 200) {
         setProceeded(false);
         setSuccess(false);

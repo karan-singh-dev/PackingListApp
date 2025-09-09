@@ -53,8 +53,8 @@ const Splash = () => {
             resizeMode="contain"
           />
         </View>
-        <Text style={styles.title}>GlobePact</Text>
-        <Text style={styles.subtitle}>Simplifying Global Trade</Text>
+        <Text style={styles.title}>SKG</Text>
+        <Text style={styles.subtitle}>NOW EXPORT IN YOUR POCKET</Text>
       </LinearGradient>
     </Animated.View>
   );

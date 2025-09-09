@@ -74,8 +74,8 @@ const LogIn = () => {
             source={require('../../assets/images/logo.png')} // 🔹 Place your logo in assets
             style={styles.logo}
           />
-          <Text style={styles.appName}>GlobePact</Text>
-          <Text style={styles.tagline}>Simplifying Global Trade</Text>
+          <Text style={styles.appName}>SKG</Text>
+          <Text style={styles.tagline}>NOW EXPORT IN YOUR POCKET</Text>
         </View>
 
         {/* Login Card */}
@@ -138,9 +138,9 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   logo: {
-    width: 90,
-    height: 90,
-    marginBottom: 15,
+    width: 100,
+    height: 100,
+    // marginBottom: 15,
     resizeMode: 'contain',
   },
   appName: {

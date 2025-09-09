@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -6,72 +6,91 @@ import {
   FlatList,
   Switch,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
+import API from "../../../components/API"; // replace with your actual API import
 
 const PermissionScreen = () => {
-  const [subUsers, setSubUsers] = useState([
-    { id: "1", name: "Alice", permissions: { view: true, edit: false, delete: false } },
-    { id: "2", name: "Bob", permissions: { view: true, edit: true, delete: false } },
-    { id: "3", name: "Charlie", permissions: { view: false, edit: false, delete: false } },
-  ]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Toggle specific permission
-  const togglePermission = (id, type) => {
-    setSubUsers((prevUsers) =>
-      prevUsers.map((user) =>
-        user.id === id
-          ? {
-              ...user,
-              permissions: {
-                ...user.permissions,
-                [type]: !user.permissions[type],
-              },
-            }
-          : user
+  // Fetch users from API
+  useEffect(() => {
+    API.get("/api/user/permissions/")
+      .then((res) => {
+        console.log("API response:", res.data);
+        setUsers(res.data);
+      })
+      .catch((err) => {
+        console.error(err);
+        Alert.alert("Error", "Failed to fetch users.");
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Toggle individual permission
+  const togglePermission = (id) => {
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === id ? { ...u, permission: !u.permission } : u
       )
     );
   };
 
+  // Save all changes
+  const save = async () => {
+    try {
+      await API.put(
+        "/api/user/permissions/",
+        users.map(({ id, permission }) => ({ id, permission }))
+      );
+      Alert.alert("Success", "Permissions updated!");
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Error", "Failed to update permissions.");
+    }
+  };
+
+  // Render each user
   const renderUser = ({ item }) => (
     <View style={styles.card}>
-      <Text style={styles.name}>{item.name}</Text>
       <View style={styles.permissionRow}>
+        <Text style={styles.name}>{item.username}</Text>
         <View style={styles.permission}>
-          <Text>View</Text>
+          <Text style={{ marginRight: 10 }}>
+            {item.permission ? "Allowed" : "Denied"}
+          </Text>
           <Switch
-            value={item.permissions.view}
-            onValueChange={() => togglePermission(item.id, "view")}
-          />
-        </View>
-        <View style={styles.permission}>
-          <Text>Edit</Text>
-          <Switch
-            value={item.permissions.edit}
-            onValueChange={() => togglePermission(item.id, "edit")}
-          />
-        </View>
-        <View style={styles.permission}>
-          <Text>Delete</Text>
-          <Switch
-            value={item.permissions.delete}
-            onValueChange={() => togglePermission(item.id, "delete")}
+            value={item.permission}
+            onValueChange={() => togglePermission(item.id)}
           />
         </View>
       </View>
     </View>
   );
 
+  if (loading) {
+    return (
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color="#1E40AF" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Manage Permissions</Text>
+      <View style={{ alignItems: "center", marginBottom: 20 }}>
+        <Text style={styles.header}>Sub-User Permissions</Text>
+      </View>
 
       <FlatList
-        data={subUsers}
+        data={users}
         keyExtractor={(item) => item.id}
         renderItem={renderUser}
       />
 
-      <TouchableOpacity style={styles.saveBtn}>
+      <TouchableOpacity style={styles.saveBtn} onPress={save}>
         <Text style={styles.saveText}>Save Permissions</Text>
       </TouchableOpacity>
     </View>
@@ -83,43 +102,54 @@ export default PermissionScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#F9FAFB",
     padding: 16,
-    backgroundColor: "#fff",
   },
   header: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 16,
+    color: "#1E40AF",
   },
   card: {
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
-    padding: 15,
+    padding: 16,
     marginBottom: 12,
-    elevation: 2,
-  },
-  name: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   permissionRow: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
   },
+  name: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#111827",
+  },
   permission: {
+    flexDirection: "row",
     alignItems: "center",
   },
   saveBtn: {
-    backgroundColor: "#4CAF50",
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: "#1E40AF",
+    paddingVertical: 14,
+    borderRadius: 12,
     alignItems: "center",
     marginTop: 20,
   },
   saveText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
+  },
+  loader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

@@ -37,7 +37,7 @@ const UploadMrpList = ({ navigation }) => {
     { label: 'HERO', value: 'HERO' },
     { label: 'YAMAHA', value: 'YAMAHA' },
     { label: 'SUZUKI', value: 'SUZUKI' },
-    { label: 'INDURANCE', value: 'INDURANCE' },
+    { label: 'ENDURANCE', value: 'ENDURANCE' },
   ];
 
   // Parse Excel only for preview
