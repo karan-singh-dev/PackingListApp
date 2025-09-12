@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
+import { useSelector } from 'react-redux';
 
 const buttons = [
   { title: 'Home', screen: 'Home', color: '#2563EB', icon: 'home' },
@@ -12,22 +13,22 @@ const buttons = [
   { title: 'Stock List', screen: 'StockList', color: '#2563EB', icon: 'layers' },
   { title: 'Row Packing List', screen: 'RowPackingList', color: '#2563EB', icon: 'grid' },
   { title: 'Packing List', screen: 'PackingList', color: '#2563EB', icon: 'clipboard' },
+  { title: 'Loss Report', screen: 'LossReportScreen', color: '#2563EB', icon: 'bar-chart-2' },
 ];
 
 export default function CustomDrawer({ navigation }) {
-  const client = {
-    name: 'ABC Client',
-    email: 'abc@client.com',
-    address: 'Mumbai, India',
-  };
+    const selectedClient = useSelector((state) => state.clientData?.selectedClient);
+  const client = selectedClient?.client_name || '';
+  const marka = selectedClient?.marka || 'N/A';
+  const isClientSelected = !!client;
+ 
 
   return (
     <View style={styles.container}>
       {/* Client Info */}
       <View style={styles.clientInfo}>
-        <Text style={styles.clientName}>{client.name}</Text>
-        <Text style={styles.clientEmail}>{client.email}</Text>
-        <Text style={styles.clientAddress}>{client.address}</Text>
+        <Text style={styles.clientName}>{client}</Text>
+        <Text style={styles.clientEmail}>{marka}</Text>
       </View>
 
       {/* Menu Buttons */}

@@ -10,6 +10,7 @@ import PackingPage from '../screens/packingScreen/PackingPage';
 import RowPackingList from '../screens/packingScreen/RowPackingList';
 import UpdateOrder from '../screens/packingScreen/UpdateOrder';
 import AddStock from '../screens/packingScreen/AddStock';
+import LossReportScreen from '../screens/packingScreen/LossReportScreen';
 
 const Drawer = createDrawerNavigator();
 
@@ -28,6 +29,7 @@ export default function AppDrawer() {
             <Drawer.Screen name="RowPackingList" component={RowPackingList} />
             <Drawer.Screen name="PackingList" component={DisplayPackingList} />
             <Drawer.Screen name="Estimate" component={Estimate} />
+            <Drawer.Screen name="LossReportScreen" component={LossReportScreen} />
         </ Drawer.Navigator>
     );
 }

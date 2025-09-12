@@ -43,7 +43,8 @@ const Home = ({ navigation }) => {
     { title: 'Search Item', icon: <Ionicons name="search" size={36} color="#1E40AF" />, screen: 'Mrp' },
     { title: 'Stock', icon: <Ionicons name="cube" size={36} color="#1E40AF" />, screen: 'MainStockList' },
     { title: 'Mrp List', icon: <Ionicons name="pricetags-outline" size={36} color="#1E40AF" />, screen: 'MrpList' },
-  
+    { title: 'Tax Invoice', icon: <Ionicons name="pricetags" size={36} color="#1E40AF" />, screen: 'TaxInvoice' },
+
   ];
   if(userdata?.is_staff){
     menuItems.push(  { title: 'Security', icon: <Ionicons name="shield-checkmark" size={36} color="#1E40AF" />, screen: 'Security' });

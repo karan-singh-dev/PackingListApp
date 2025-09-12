@@ -28,7 +28,7 @@ const ClientSelection = () => {
   const [selectedClientKey, setSelectedClientKey] = useState(null);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [confirmClientName, setConfirmClientName] = useState('');
-
+ const user = useSelector((state) => state.userInfo.user);
   useFocusEffect(
     useCallback(() => {
       dispatch(fetchClients());
@@ -82,6 +82,7 @@ const ClientSelection = () => {
             label: `${c.client_name} (${c.marka})`,
             value: generateKey(c),
           }))}
+         
           labelField="label"
           valueField="value"
           placeholder={loading ? 'Loading...' : 'Select client'}
@@ -93,6 +94,8 @@ const ClientSelection = () => {
           selectedTextStyle={{ color: '#000' }}
           placeholderStyle={{ color: '#666' }}
           itemTextStyle={{ color: '#000' }}
+          maxHeight={400}
+          
         />
 
         {error && <Text style={styles.errorText}>Error: {error}</Text>}
@@ -131,12 +134,12 @@ const ClientSelection = () => {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
+            {user?.is_staff && <TouchableOpacity
               style={styles.deleteButton}
               onPress={() => setDeleteModalVisible(true)}
             >
               <Text style={styles.deleteButtonText}>Delete Client</Text>
-            </TouchableOpacity>
+            </TouchableOpacity>}
           </View>
         )}
       </ScrollView>

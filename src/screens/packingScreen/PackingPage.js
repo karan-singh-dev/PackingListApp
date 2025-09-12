@@ -27,7 +27,8 @@ console.log(selectedClient,"selectedClientselectedClient");
     { title: 'Stock List', screen: 'StockList', icon: 'layers', colors: ['#8B5CF6', '#6D28D9'] },
     { title: 'Row Packing List', screen: 'RowPackingList', icon: 'grid', colors: ['#EC4899', '#BE185D'] },
     { title: 'Packing List', screen: 'PackingList', icon: 'clipboard', colors: ['#F97316', '#C2410C'] },
-  ];
+    
+  ]
 
   if (!isClientSelected) {
     return <ClientSelection />;

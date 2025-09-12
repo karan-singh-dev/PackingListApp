@@ -16,6 +16,7 @@ const CreateClient = () => {
   // Form fields
   const [clientName, setClientName] = useState('');
   const [clientCountry, setClientCountry] = useState('');
+  const [clientState, setClientState] = useState('');
   const [clientMarka, setClientMarka] = useState('');
   const [address, setAddress] = useState('');
   const [vesselNo, setVesselNo] = useState(null);
@@ -77,6 +78,9 @@ const CreateClient = () => {
     if (!data.country?.trim()) {
       errors.country = 'Country is required';
     }
+    if (!data.state?.trim()) {
+      errors.state = 'State is required';
+    }
     if (!data.address?.trim()) {
       errors.address = 'Address is required';
     }
@@ -119,9 +123,10 @@ const CreateClient = () => {
       port_of_discharge: portOfDischarge.trim(),
       final_destination: finalDestination.trim(),
       gst: selectedGSTs,
-      rupees: parseInt(rupees)
+      rupees: parseInt(rupees),
+      state: clientState.trim(),
     };
-    console.log('newClient',);
+    console.log('newClient', newClient);
 
     try {
 
@@ -172,6 +177,16 @@ const CreateClient = () => {
           onChangeText={setClientCountry}
           placeholderTextColor="#ccc"
         />
+            <Text style={styles.label}>State</Text>
+        <TextInput
+          placeholder="State"
+          style={styles.input}
+          value={clientState}
+          onChangeText={setClientState}
+          placeholderTextColor="#ccc"
+        />
+
+         
 
         <Text style={styles.label}>Address</Text>
         <TextInput

@@ -709,7 +709,7 @@ console.log(packing, 'packing');
           )}
 
           {/* Horizontal Scroll */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {/* Content Scroll */}
             {invoiceData && invoiceData.length > 0 && (
               <ScrollView contentContainerStyle={styles.scrollContent}>

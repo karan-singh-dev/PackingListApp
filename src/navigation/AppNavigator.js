@@ -31,6 +31,8 @@ import Gst from '../screens/main/Gst';
 import UpdatePackingList from '../screens/packingScreen/UpdatePackingList';
 import UploadMrpList from '../screens/main/invoiceScreen/UploadMrpList';
 import Security from '../screens/main/invoiceScreen/Security';
+import TaxInvoice from '../screens/main/invoiceScreen/TaxInvoice';
+import LossReportScreen from '../screens/packingScreen/LossReportScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -71,6 +73,8 @@ export default function AppNavigator() {
             <Stack.Screen name="UpdatePackingList" component={UpdatePackingList} />
             <Stack.Screen name="MrpList" component={UploadMrpList} />
             <Stack.Screen name="Security" component={Security} />
+            <Stack.Screen name="TaxInvoice" component={TaxInvoice} />
+            <Stack.Screen name="LossReportScreen" component={LossReportScreen} />
           </>
         )}
       </Stack.Navigator>
